@@ -7,8 +7,14 @@ import '../models/catalog_item.dart';
 import '../models/community.dart';
 import '../models/discovery_item.dart';
 import '../models/operator_management.dart';
-import '../pages/catalog_detail_page.dart';
+import '../pages/activity_details_page.dart';
+import '../pages/destination_details_page.dart';
 import '../pages/community_page.dart';
+import '../pages/car_hire_page.dart';
+import '../services/operator_offerings_service.dart';
+import '../pages/tour_details_page.dart';
+import '../pages/all_tourist_guides_page.dart';
+import '../pages/all_tour_operators_page.dart';
 import '../services/api_exception.dart';
 import '../services/auth_service.dart';
 import '../services/catalog_service.dart';
@@ -18,9 +24,8 @@ import '../utils/text_case.dart';
 import 'app_ui.dart';
 import 'guest_access_sheet.dart';
 import 'premium_states.dart';
-import 'safari_trail.dart';
 
-const double premiumProviderCardHeight = 312;
+const double premiumProviderCardHeight = 224;
 
 const double _premiumProviderCardWidth = 312;
 const Color _providerForest = Color(0xFF0B2D1D);
@@ -33,10 +38,12 @@ class ProviderDiscoverySections extends StatefulWidget {
     super.key,
     this.enabled = true,
     this.isGuest = false,
+    this.countryName,
   });
 
   final bool enabled;
   final bool isGuest;
+  final String? countryName;
 
   @override
   State<ProviderDiscoverySections> createState() =>
@@ -92,7 +99,18 @@ class _ProviderDiscoverySectionsState extends State<ProviderDiscoverySections> {
           return _ProviderLoadError(onRetry: _reload);
         }
 
-        final providers = snapshot.data!;
+        final rawProviders = snapshot.data!;
+        final country = widget.countryName?.trim();
+        final providers = country == null || country.isEmpty
+            ? rawProviders
+            : FeaturedProviders(
+                guides: rawProviders.guides
+                    .where((member) => member.operatesIn(country))
+                    .toList(),
+                operators: rawProviders.operators
+                    .where((member) => member.operatesIn(country))
+                    .toList(),
+              );
         if (providers.guides.isEmpty && providers.operators.isEmpty) {
           return const AppStatePanel(
             title: 'No providers are available yet',
@@ -114,19 +132,21 @@ class _ProviderDiscoverySectionsState extends State<ProviderDiscoverySections> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _LocalExpertsHeader(showOperators: showOperators),
+            const _LocalExpertsHeader(),
             const SizedBox(height: 18),
-            if (hasGuides && hasOperators) ...[
-              _ProviderTypeTabs(
-                showOperators: showOperators,
-                onChanged: (value) {
-                  setState(() {
-                    _showOperators = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
+            _ProviderTypeTabs(
+              showOperators: showOperators,
+              guideCount: providers.guides.length,
+              operatorCount: providers.operators.length,
+              hasGuides: hasGuides,
+              hasOperators: hasOperators,
+              onChanged: (value) {
+                setState(() {
+                  _showOperators = value;
+                });
+              },
+            ),
+            const SizedBox(height: 18),
             _ProviderCarousel(
               members: visibleMembers,
               operatorStyle: showOperators,
@@ -140,71 +160,43 @@ class _ProviderDiscoverySectionsState extends State<ProviderDiscoverySections> {
 }
 
 class _LocalExpertsHeader extends StatelessWidget {
-  const _LocalExpertsHeader({required this.showOperators});
-
-  final bool showOperators;
+  const _LocalExpertsHeader();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  Text(
-                    'Meet Local Safari Experts',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: const Color(0xFF123B2A),
-                      fontWeight: FontWeight.w700,
-                      height: 1.08,
-                      letterSpacing: -.55,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.verified_user_outlined,
-                    color: Color(0xFFD7A842),
-                    size: 25,
-                  ),
-                ],
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            Text(
+              'Meet Local Safari Experts',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: const Color(0xFF165B5D),
+                fontWeight: FontWeight.w800,
+                height: 1.08,
+                letterSpacing: -.55,
               ),
-              const SizedBox(height: 5),
-              Text(
-                'Knowledgeable. Verified. Trusted.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurface.withOpacity(.62),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+            ),
+            const Icon(
+              Icons.verified_user_outlined,
+              color: Color(0xFFD7A842),
+              size: 25,
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        TextButton.icon(
-          onPressed: () {
-            Navigator.pushNamed(
-              context,
-              showOperators ? '/operators' : '/guides',
-            );
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF123B2A),
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          ),
-          iconAlignment: IconAlignment.end,
-          icon: const Icon(Icons.chevron_right_rounded, size: 20),
-          label: const Text(
-            'View all',
-            style: TextStyle(fontWeight: FontWeight.w800),
+        const SizedBox(height: 5),
+        Text(
+          'Knowledgeable. Verified. Trusted.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colors.onSurface.withOpacity(.62),
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -215,10 +207,18 @@ class _LocalExpertsHeader extends StatelessWidget {
 class _ProviderTypeTabs extends StatelessWidget {
   const _ProviderTypeTabs({
     required this.showOperators,
+    required this.guideCount,
+    required this.operatorCount,
+    required this.hasGuides,
+    required this.hasOperators,
     required this.onChanged,
   });
 
   final bool showOperators;
+  final int guideCount;
+  final int operatorCount;
+  final bool hasGuides;
+  final bool hasOperators;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -228,89 +228,134 @@ class _ProviderTypeTabs extends StatelessWidget {
 
     Widget tab({
       required String label,
-      required IconData icon,
       required bool selected,
+      required bool enabled,
       required VoidCallback onTap,
     }) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(999),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              color: selected ? const Color(0xFF0F4B32) : colors.surface,
+      return Expanded(
+        child: Opacity(
+          opacity: enabled ? 1 : .46,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: enabled ? onTap : null,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color:
-                    selected
-                        ? const Color(0xFF0F4B32)
-                        : colors.outlineVariant.withOpacity(.78),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(selected ? .08 : .035),
-                  blurRadius: selected ? 11 : 7,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 190),
+                curve: Curves.easeOutCubic,
+                height: 54,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
                   color:
                       selected
-                          ? Colors.white
-                          : colors.onSurface.withOpacity(.72),
-                ),
-                const SizedBox(width: 7),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
+                          ? const Color(0xFF165B5D)
+                          : Colors.white.withOpacity(.92),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
                     color:
                         selected
-                            ? Colors.white
-                            : colors.onSurface.withOpacity(.80),
-                    fontWeight: FontWeight.w800,
+                            ? const Color(0xFF165B5D)
+                            : colors.outlineVariant.withOpacity(.75),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(selected ? .10 : .045),
+                      blurRadius: selected ? 14 : 8,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color:
+                              selected
+                                  ? Colors.white
+                                  : colors.onSurface.withOpacity(.86),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
+    final activeLabel = showOperators ? 'operators' : 'guides';
+
+    return Column(
+      children: [
+        Row(
           children: [
             tab(
-              label: 'Tour Guides',
-              icon: Icons.person_outline_rounded,
+              label: 'Tourist Guides',
               selected: !showOperators,
+              enabled: hasGuides,
               onTap: () => onChanged(false),
             ),
-            const SizedBox(width: 9),
+            const SizedBox(width: 10),
             tab(
               label: 'Tour Operators',
-              icon: Icons.business_center_outlined,
               selected: showOperators,
+              enabled: hasOperators,
               onTap: () => onChanged(true),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$guideCount ${guideCount == 1 ? 'Tourist Guide' : 'Tourist Guides'}  •  '
+                '$operatorCount ${operatorCount == 1 ? 'Tour Operator' : 'Tour Operators'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurface.withOpacity(.62),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => showOperators
+                        ? const AllTourOperatorsPage()
+                        : const AllTouristGuidesPage(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    showOperators
+                        ? const Color(0xFF9A4B1D)
+                        : const Color(0xFF165B5D),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+              ),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.chevron_right_rounded, size: 20),
+              label: Text(
+                'View all $activeLabel',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -391,7 +436,7 @@ class _ProviderCarouselState extends State<_ProviderCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: widget.operatorStyle ? premiumProviderCardHeight : 326,
+          height: premiumProviderCardHeight,
           child: PageView.builder(
             controller: _controller,
             padEnds: false,
@@ -450,6 +495,287 @@ class PremiumProviderCard extends StatelessWidget {
     super.key,
     required this.member,
     this.isGuest = false,
+    this.showOperatingCountries = false,
+  });
+
+  final CommunityMember member;
+  final bool isGuest;
+  final bool showOperatingCountries;
+
+  @override
+  Widget build(BuildContext context) {
+    // The same premium card is used in two places:
+    // 1. the fixed-height dashboard carousel, and
+    // 2. the View All vertical ListView.
+    //
+    // A vertical ListView gives its children unbounded height. Giving the
+    // reusable card an explicit height here guarantees finite constraints in
+    // both places and prevents RenderFlex / child.hasSize failures.
+    return SizedBox(
+      width: double.infinity,
+      height: premiumProviderCardHeight,
+      child: _LocalExpertCard(
+        member: member,
+        isGuest: isGuest,
+        showOperatingCountries: showOperatingCountries,
+      ),
+    );
+  }
+}
+
+class _LocalExpertCard extends StatelessWidget {
+  const _LocalExpertCard({
+    required this.member,
+    required this.isGuest,
+    required this.showOperatingCountries,
+  });
+
+  final CommunityMember member;
+  final bool isGuest;
+  final bool showOperatingCountries;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isOperator = member.isOperator;
+
+    return Material(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(26),
+      clipBehavior: Clip.antiAlias,
+      elevation: 8,
+      shadowColor: Colors.black.withOpacity(.16),
+      child: InkWell(
+        onTap: () => _openProviderProfile(
+          context,
+          member,
+          isGuest: isGuest,
+        ),
+        splashColor: const Color(0xFF165B5D).withOpacity(.05),
+        highlightColor: const Color(0xFF165B5D).withOpacity(.025),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: const Color(0xFF165B5D).withOpacity(.075),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _PremiumProviderAvatar(
+                            member: member,
+                            size: 72,
+                            borderColor: Colors.white,
+                            borderWidth: 2,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        member.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: const Color(0xFF17211F),
+                                          fontWeight: FontWeight.w900,
+                                          height: 1.05,
+                                          letterSpacing: -.35,
+                                        ),
+                                      ),
+                                    ),
+                                    if (member.isVerified) ...[
+                                      const SizedBox(width: 5),
+                                      const Tooltip(
+                                        message: 'Verified provider',
+                                        child: Icon(
+                                          Icons.verified_rounded,
+                                          color: Color(0xFF165B5D),
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isOperator ? 'Tour Operator' : 'Safari Guide',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: const Color(0xFF165B5D),
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          _PremiumRating(member: member),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _joinedAgoLabel(member.joinedAt),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.onSurface.withOpacity(.58),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _InlineSaveProviderButton(
+                            member: member,
+                            isGuest: isGuest,
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Divider(
+                        height: 1,
+                        thickness: .8,
+                        color: colors.outlineVariant.withOpacity(.62),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 17,
+                            color: Color(0xFF165B5D),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Based in',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurface.withOpacity(.60),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          _RectangularCountryFlag(
+                            countryName:
+                                member.country.trim().isNotEmpty
+                                    ? member.country.trim()
+                                    : member.location.trim(),
+                            width: 27,
+                            height: 18,
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              member.country.trim().isNotEmpty
+                                  ? member.country.trim()
+                                  : member.location.trim().isNotEmpty
+                                  ? member.location.trim()
+                                  : 'East Africa',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFF17211F),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F7F4),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.visibility_outlined,
+                                  size: 15,
+                                  color: Color(0xFF165B5D),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${member.viewCount}',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: const Color(0xFF165B5D),
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (showOperatingCountries) ...[
+                        const SizedBox(height: 12),
+
+                        Divider(
+                          height: 1,
+                          thickness: .8,
+                          color: colors.outlineVariant.withOpacity(.62),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        Text(
+                          'OPERATES IN',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurface.withOpacity(.58),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: .65,
+                          ),
+                        ),
+
+                        const SizedBox(height: 7),
+
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: _PremiumOperatingCountryChips(member: member),
+                        ),
+                      ],
+                    ],
+                  ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _InlineSaveProviderButton extends StatelessWidget {
+  const _InlineSaveProviderButton({
+    required this.member,
+    required this.isGuest,
   });
 
   final CommunityMember member;
@@ -457,297 +783,257 @@ class PremiumProviderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: _LocalExpertCard(member: member, isGuest: isGuest),
+    final record = DiscoveryRecord.fromProvider(member);
+
+    return AnimatedBuilder(
+      animation: DiscoveryStore.instance,
+      builder: (context, _) {
+        final saved = DiscoveryStore.instance.isSaved(record);
+
+        return Material(
+          color: saved
+              ? const Color(0xFFF46627).withOpacity(.12)
+              : const Color(0xFF165B5D).withOpacity(.07),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: () async {
+              if (isGuest) {
+                await showGuestAccessSheet(
+                  context,
+                  title: 'Save this provider',
+                  message:
+                      'Login or create a free account to save guides and tour operators to your favourites.',
+                );
+                return;
+              }
+
+              DiscoveryStore.instance.toggleSaved(record);
+            },
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(
+                saved
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                size: 20,
+                color: saved
+                    ? const Color(0xFFF46627)
+                    : const Color(0xFF165B5D),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _LocalExpertCard extends StatelessWidget {
-  const _LocalExpertCard({required this.member, required this.isGuest});
+
+class _PremiumTypeBadge extends StatelessWidget {
+  const _PremiumTypeBadge({required this.member});
 
   final CommunityMember member;
-  final bool isGuest;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
+    final isOperator = member.isOperator;
+    final label =
+        isOperator
+            ? (member.isVerified ? 'VERIFIED OPERATOR' : 'TOUR OPERATOR')
+            : (member.ratingCount > 0 ? 'TOP RATED GUIDE' : 'LOCAL GUIDE');
 
-    return Material(
-      color: colors.surface,
-      surfaceTintColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(23),
-      clipBehavior: Clip.antiAlias,
-      elevation: 9,
-      shadowColor: Colors.black.withOpacity(.20),
-      child: InkWell(
-        onTap: () => _openProviderProfile(context, member, isGuest: isGuest),
-        splashColor: colors.primary.withOpacity(.05),
-        highlightColor: colors.primary.withOpacity(.025),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(23),
-            border: Border.all(color: colors.outlineVariant.withOpacity(.55)),
+    final color =
+        isOperator
+            ? const Color(0xFFF46627)
+            : const Color(0xFFD7A842);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.93),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.12),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: member.isOperator ? 186 : 178,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _ProviderBackdropImage(
-                      member: member,
-                      fallbackIcon:
-                          member.isOperator
-                              ? Icons.terrain_rounded
-                              : Icons.explore_rounded,
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors:
-                              member.isOperator
-                                  ? const [
-                                    Color(0x00000000),
-                                    Color(0x28000000),
-                                    Color(0xD9000000),
-                                  ]
-                                  : const [
-                                    Color(0x05000000),
-                                    Color(0x24000000),
-                                  ],
-                          stops:
-                              member.isOperator
-                                  ? const [0.30, 0.62, 1.0]
-                                  : null,
-                        ),
-                      ),
-                    ),
-                    if (!member.isOperator)
-                      Positioned(
-                        left: 18,
-                        bottom: 15,
-                        child: Hero(
-                          tag: 'provider-${member.id}',
-                          child: _PremiumProviderAvatar(
-                            member: member,
-                            size: 108,
-                            borderColor: Colors.white,
-                            borderWidth: 3,
-                          ),
-                        ),
-                      ),
-                    if (member.isOperator)
-                      Positioned(
-                        left: 16,
-                        right: 58,
-                        bottom: 15,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                member.name,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.05,
-                                  letterSpacing: -.35,
-                                  shadows: const [
-                                    Shadow(
-                                      color: Color(0x66000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (member.isVerified) ...[
-                              const SizedBox(width: 6),
-                              const Tooltip(
-                                message: 'Verified provider',
-                                child: Icon(
-                                  Icons.verified_rounded,
-                                  color: Color(0xFF50C878),
-                                  size: 20,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    if (member.isOperator)
-                      Positioned(
-                        left: 12,
-                        top: 12,
-                        child: _CoverRating(member: member),
-                      ),
-                    Positioned(
-                      right: 12,
-                      top: 12,
-                      child: _SaveProviderButton(
-                        member: member,
-                        isGuest: isGuest,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  17,
-                  member.isOperator ? 7 : 10,
-                  17,
-                  member.isOperator ? 8 : 5,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!member.isOperator)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    member.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          color: const Color(0xFF171B18),
-                                          fontWeight: FontWeight.w800,
-                                          height: 1.08,
-                                          letterSpacing: -.25,
-                                        ),
-                                  ),
-                                ),
-                                if (member.isVerified) ...[
-                                  const SizedBox(width: 5),
-                                  const Tooltip(
-                                    message: 'Verified provider',
-                                    child: Icon(
-                                      Icons.verified_rounded,
-                                      color: Color(0xFF1F8A5B),
-                                      size: 19,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _CompactRating(member: member),
-                        ],
-                      ),
-                    if (!member.isOperator) const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Text(
-                          'Based in',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurface.withOpacity(.58),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 7),
-                        _RectangularCountryFlag(
-                          countryName:
-                              member.country.trim().isNotEmpty
-                                  ? member.country.trim()
-                                  : member.location.trim(),
-                          width: 28,
-                          height: 18,
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            member.country.trim().isNotEmpty
-                                ? member.country.trim()
-                                : member.location.trim().isNotEmpty
-                                ? member.location.trim()
-                                : 'East Africa',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurface.withOpacity(.76),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3F7F3),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: const Color(0xFF0F4B32).withOpacity(.10),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.visibility_outlined,
-                                size: 15,
-                                color: Color(0xFF0F4B32),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                '${member.viewCount}',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: const Color(0xFF0F4B32),
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'views',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: colors.onSurface.withOpacity(.58),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Divider(
-                      height: 1,
-                      thickness: .8,
-                      color: colors.outlineVariant.withOpacity(.68),
-                    ),
-                    const SizedBox(height: 6),
-                    _OperatingCountries(
-                      member: member,
-                      foregroundColor: const Color(0xFF171B18),
-                      showOperatorLogo: member.isOperator,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isOperator
+                ? Icons.verified_user_outlined
+                : Icons.star_rounded,
+            size: 15,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumRating extends StatelessWidget {
+  const _PremiumRating({required this.member});
+
+  final CommunityMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRatings = member.ratingCount > 0;
+
+    if (!hasRatings) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F2E8),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: const Text(
+          'New',
+          style: TextStyle(
+            color: Color(0xFF8A6726),
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
           ),
         ),
-      ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.star_rounded,
+              color: Color(0xFFD7A842),
+              size: 19,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              member.ratingAverage.toStringAsFixed(1),
+              style: const TextStyle(
+                color: Color(0xFF17211F),
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 1),
+        Text(
+          '(${member.ratingCount} ${member.ratingCount == 1 ? 'review' : 'reviews'})',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(.58),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PremiumOperatingCountryChips extends StatelessWidget {
+  const _PremiumOperatingCountryChips({required this.member});
+
+  final CommunityMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    final countries = member.countriesServed;
+    if (countries.isEmpty) {
+      return const Text(
+        'East Africa',
+        style: TextStyle(
+          color: Color(0xFF66716E),
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    }
+
+    const maxVisible = 3;
+    final visible = countries.take(maxVisible).toList();
+    final hidden = countries.length - visible.length;
+
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: [
+        ...visible.map(
+          (country) => Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7F4ED),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF165B5D).withOpacity(.08),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _RectangularCountryFlag(
+                  countryName: country,
+                  width: 21,
+                  height: 14,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  country,
+                  style: const TextStyle(
+                    color: Color(0xFF17211F),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (hidden > 0)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 7,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF165B5D).withOpacity(.14),
+              ),
+            ),
+            child: Text(
+              '+$hidden',
+              style: const TextStyle(
+                color: Color(0xFF165B5D),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1048,32 +1334,44 @@ class _OperatingCountries extends StatelessWidget {
         ],
         if (countries.isNotEmpty) ...[
           Text(
-            'Destinations:',
+            'Operates in',
             style: TextStyle(
-              color: foregroundColor.withOpacity(.76),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
+              color: foregroundColor.withOpacity(.72),
+              fontSize: 12.2,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Wrap(
-              spacing: 7,
-              runSpacing: 5,
-              children:
-                  countries
-                      .take(4)
-                      .map(
-                        (country) => Tooltip(
-                          message: country,
-                          child: _RectangularCountryFlag(
-                            countryName: country,
-                            width: 30,
-                            height: 20,
-                          ),
+              spacing: 6,
+              runSpacing: 6,
+              children: countries
+                  .take(4)
+                  .map(
+                    (country) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF165B5D).withOpacity(.07),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: const Color(0xFF165B5D).withOpacity(.09),
                         ),
-                      )
-                      .toList(),
+                      ),
+                      child: Text(
+                        country,
+                        style: TextStyle(
+                          color: foregroundColor.withOpacity(.88),
+                          fontSize: 10.7,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ] else
@@ -1801,7 +2099,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
         final isProfessionalRating = viewerRole == 'tour_operator';
 
         return Scaffold(
-          backgroundColor: theme.colorScheme.surfaceContainerLowest,
+          backgroundColor: const Color(0xFFF4EEE1),
           body: Stack(
             children: [
               SingleChildScrollView(
@@ -1809,7 +2107,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                   children: [
                     _ProviderProfileHero(member: current),
                     Transform.translate(
-                      offset: const Offset(0, -46),
+                      offset: const Offset(0, -58),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
                         child: Column(
@@ -1817,6 +2115,16 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                             _ProviderIdentityCard(member: current),
                             const SizedBox(height: 14),
                             _ProviderTrustPanel(member: current),
+                            if (current.isGuide &&
+                                current.publicAffiliations.isNotEmpty) ...[
+                              const SizedBox(height: 18),
+                              _GuidePublicAffiliationsSection(member: current),
+                            ],
+                            if (current.isOperator &&
+                                current.safariTeam.isNotEmpty) ...[
+                              const SizedBox(height: 26),
+                              _OperatorSafariTeamSection(operator: current),
+                            ],
                             if (snapshot.hasError) ...[
                               const SizedBox(height: 12),
                               _ProfileLoadNotice(onRetry: _reloadProfile),
@@ -1834,7 +2142,11 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                                         ),
                                         label: const Text('Message'),
                                         style: FilledButton.styleFrom(
-                                          minimumSize: const Size(0, 52),
+                                          backgroundColor:
+                                              const Color(0xFF165B5D),
+                                          foregroundColor: Colors.white,
+                                          minimumSize: const Size(0, 54),
+                                          elevation: 0,
                                           shape: const StadiumBorder(),
                                         ),
                                       ),
@@ -1856,17 +2168,18 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                                               : 'Edit rating',
                                         ),
                                         style: OutlinedButton.styleFrom(
-                                          minimumSize: const Size(0, 52),
+                                          foregroundColor:
+                                              const Color(0xFF165B5D),
+                                          side: const BorderSide(
+                                            color: Color(0xFF165B5D),
+                                          ),
+                                          minimumSize: const Size(0, 54),
                                           shape: const StadiumBorder(),
                                         ),
                                       ),
                                     ),
                                 ],
                               ),
-                            ],
-                            if (current.isOperator) ...[
-                              const SizedBox(height: 22),
-                              _OperatorProfileBanner(member: current),
                             ],
                             if (current.isGuide &&
                                 current.galleryUrls.isNotEmpty) ...[
@@ -1879,6 +2192,13 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                             if (current.tours.isNotEmpty) ...[
                               const SizedBox(height: 30),
                               _ProviderToursSection(member: current),
+                            ],
+                            if ((current.isOperator || current.isGuide) &&
+                                current.carHireEnabled) ...[
+                              const SizedBox(height: 30),
+                              _OperatorCarHireProfileSection(
+                                operator: current,
+                              ),
                             ],
                             if (current.biography.isNotEmpty) ...[
                               const SizedBox(height: 28),
@@ -1911,7 +2231,7 @@ class _ProviderProfilePageState extends State<ProviderProfilePage> {
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Material(
-                    color: Colors.black.withOpacity(.42),
+                    color: const Color(0xFF165B5D).withOpacity(.90),
                     shape: const CircleBorder(),
                     child: IconButton(
                       tooltip: 'Back',
@@ -1939,12 +2259,18 @@ class _ProviderProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final accent = member.isOperator ? colors.secondary : colors.primary;
+    const primary = Color(0xFF165B5D);
+    const secondary = Color(0xFFF46627);
+    final accent = member.isOperator ? secondary : primary;
+
     final fallback = Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [accent, Color.lerp(accent, colors.tertiary, .55)!],
+          colors: [
+            Color(0xFF315F60),
+            Color(0xFF165B5D),
+            Color(0xFF0B3D3F),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1952,12 +2278,14 @@ class _ProviderProfileHero extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -24,
-            bottom: -32,
+            right: -30,
+            bottom: -45,
             child: Icon(
-              member.isOperator ? Icons.public_rounded : Icons.explore_rounded,
-              size: 210,
-              color: Colors.white.withOpacity(.1),
+              member.isOperator
+                  ? Icons.business_center_rounded
+                  : Icons.explore_rounded,
+              size: 235,
+              color: Colors.white.withOpacity(.07),
             ),
           ),
         ],
@@ -1965,9 +2293,11 @@ class _ProviderProfileHero extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 278,
+      height: 318,
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(36)),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(38),
+        ),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -1977,54 +2307,130 @@ class _ProviderProfileHero extends StatelessWidget {
               Image.network(
                 member.coverImageUrl,
                 fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
                 errorBuilder: (_, __, ___) => fallback,
               ),
-            DecoratedBox(
+
+            const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withOpacity(.08),
-                    Colors.black.withOpacity(.58),
-                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x16000000),
+                    Color(0x26000000),
+                    Color(0x7A000000),
+                    Color(0xD8001716),
+                  ],
+                  stops: [0, .42, .72, 1],
                 ),
               ),
             ),
+
             Positioned(
               left: 20,
-              bottom: 64,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(.92),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      member.isOperator
-                          ? Icons.business_rounded
-                          : Icons.hiking_rounded,
-                      color: accent,
-                      size: 17,
+              right: 20,
+              bottom: 78,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(.16),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(.35),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                member.isVerified
+                                    ? Icons.verified_user_rounded
+                                    : member.isOperator
+                                    ? Icons.business_center_outlined
+                                    : Icons.hiking_rounded,
+                                color: member.isVerified
+                                    ? const Color(0xFFFFC75A)
+                                    : Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                member.isVerified
+                                    ? member.isOperator
+                                        ? 'VERIFIED TOUR OPERATOR'
+                                        : 'VERIFIED SAFARI GUIDE'
+                                    : member.isOperator
+                                    ? 'TOUR OPERATOR'
+                                    : 'SAFARI GUIDE',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.5,
+                                  letterSpacing: .55,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (member.country.trim().isNotEmpty ||
+                            member.location.trim().isNotEmpty) ...[
+                          const SizedBox(height: 11),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                color: Colors.white,
+                                size: 17,
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  member.country.trim().isNotEmpty
+                                      ? member.country.trim()
+                                      : member.location.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(.92),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      member.isOperator
-                          ? 'Safari company profile'
-                          : 'Professional guide profile',
-                      style: TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.w900,
+                  ),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(.92),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(.32),
                       ),
                     ),
-                  ],
-                ),
+                    child: const Icon(
+                      Icons.workspace_premium_rounded,
+                      color: Colors.white,
+                      size: 21,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -2074,41 +2480,96 @@ class _ProviderIdentityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = member.isOperator ? colors.secondary : colors.primary;
+    const primary = Color(0xFF165B5D);
+    const secondary = Color(0xFFF46627);
+    final accent = member.isOperator ? secondary : primary;
+    final baseCountry = member.country.trim().isNotEmpty
+        ? member.country.trim()
+        : member.location.trim();
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: colors.outlineVariant.withOpacity(.62)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: primary.withOpacity(.07),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.09),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
+            color: Colors.black.withOpacity(.10),
+            blurRadius: 30,
+            offset: const Offset(0, 13),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Hero(
                 tag: 'provider-${member.id}',
-                child:
-                    member.isOperator
-                        ? _OperatorProfileLogo(member: member)
-                        : _ProviderImage(
-                          member: member,
-                          operatorStyle: false,
-                          size: 88,
-                          borderWidth: 1,
-                          borderColor: Theme.of(context).colorScheme.primary,
+                child: member.isOperator
+                    ? Container(
+                        width: 102,
+                        height: 102,
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(.13),
+                              blurRadius: 16,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
                         ),
+                        child: ClipOval(
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(12),
+                            alignment: Alignment.center,
+                            child: member.profilePhotoUrl.isEmpty
+                                ? Icon(
+                                    Icons.business_outlined,
+                                    color: primary,
+                                    size: 42,
+                                  )
+                                : Image.network(
+                                    member.profilePhotoUrl,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.contain,
+                                    alignment: Alignment.center,
+                                    filterQuality: FilterQuality.high,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      Icons.business_outlined,
+                                      color: primary,
+                                      size: 42,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      )
+                    : _ProviderImage(
+                        member: member,
+                        operatorStyle: false,
+                        size: 102,
+                        borderWidth: 3,
+                        borderColor: Colors.white,
+                      ),
               ),
+
               const SizedBox(width: 15),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2121,115 +2582,47 @@ class _ProviderIdentityCard extends StatelessWidget {
                             member.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -.45,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: const Color(0xFF17211F),
+                              fontWeight: FontWeight.w900,
+                              height: 1.03,
+                              letterSpacing: -.65,
                             ),
                           ),
                         ),
                         if (member.isVerified) ...[
                           const SizedBox(width: 6),
-                          Tooltip(
+                          const Tooltip(
                             message:
                                 'Verified by Tourism Portal administration',
                             child: Icon(
                               Icons.verified_rounded,
-                              color: accent,
-                              size: 24,
+                              color: primary,
+                              size: 25,
                             ),
                           ),
                         ],
                       ],
                     ),
+
                     const SizedBox(height: 7),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accent.withOpacity(.1),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        member.roleLabel,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: accent,
-                          fontWeight: FontWeight.w900,
-                        ),
+
+                    Text(
+                      member.isOperator ? 'Tour Operator' : 'Safari Guide',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    if (member.country.trim().isNotEmpty ||
-                        member.location.trim().isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text(
-                            'Based in',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.onSurface.withOpacity(.56),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          _RectangularCountryFlag(
-                            countryName:
-                                member.country.trim().isNotEmpty
-                                    ? member.country.trim()
-                                    : member.location.trim(),
-                            width: 28,
-                            height: 18,
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              member.country.trim().isNotEmpty
-                                  ? member.country.trim()
-                                  : member.location.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (member.countriesServed.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Destinations',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.onSurface.withOpacity(.56),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Wrap(
-                              spacing: 7,
-                              runSpacing: 5,
-                              children:
-                                  member.countriesServed
-                                      .take(4)
-                                      .map(
-                                        (country) => Tooltip(
-                                          message: country,
-                                          child: _RectangularCountryFlag(
-                                            countryName: country,
-                                            width: 30,
-                                            height: 20,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                            ),
-                          ),
-                        ],
+
+                    if (member.joinedAt != null) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        _joinedAgoLabel(member.joinedAt),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF66716E),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],
@@ -2237,38 +2630,167 @@ class _ProviderIdentityCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          Divider(color: colors.outlineVariant.withOpacity(.7), height: 1),
-          const SizedBox(height: 15),
+
+          const SizedBox(height: 17),
+
+          Row(
+            children: [
+              if (baseCountry.isNotEmpty) ...[
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Based in',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF66716E),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                _RectangularCountryFlag(
+                  countryName: baseCountry,
+                  width: 28,
+                  height: 18,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    baseCountry,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF17211F),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(.07),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.visibility_outlined,
+                      color: primary,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      _compactCount(member.viewCount),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          if (member.countriesServed.isNotEmpty) ...[
+            const SizedBox(height: 17),
+            Divider(
+              height: 1,
+              color: primary.withOpacity(.10),
+            ),
+            const SizedBox(height: 13),
+            Text(
+              'OPERATES IN',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: const Color(0xFF66716E),
+                fontWeight: FontWeight.w900,
+                letterSpacing: .7,
+              ),
+            ),
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: member.countriesServed.map((country) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F4ED),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: primary.withOpacity(.08),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _RectangularCountryFlag(
+                        countryName: country,
+                        width: 21,
+                        height: 14,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        country,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: const Color(0xFF17211F),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+
+          const SizedBox(height: 17),
+
+          Divider(
+            height: 1,
+            color: primary.withOpacity(.10),
+          ),
+
+          const SizedBox(height: 14),
+
           Row(
             children: [
               Expanded(
                 child: _ProviderMiniStat(
-                  value:
-                      member.ratingCount == 0
-                          ? 'New'
-                          : member.ratingAverage.toStringAsFixed(1),
-                  label:
-                      member.ratingCount == 0
-                          ? 'No ratings yet'
-                          : '${member.ratingCount} rating${member.ratingCount == 1 ? '' : 's'}',
+                  value: member.ratingCount == 0
+                      ? 'New'
+                      : member.ratingAverage.toStringAsFixed(1),
+                  label: member.ratingCount == 0
+                      ? 'No reviews yet'
+                      : '${member.ratingCount} ${member.ratingCount == 1 ? 'review' : 'reviews'}',
                   icon: Icons.star_rounded,
-                  iconColor: const Color(0xFFF2A900),
+                  iconColor: const Color(0xFFD7A842),
                 ),
               ),
               Expanded(
                 child: _ProviderMiniStat(
-                  value: _compactCount(member.viewCount),
-                  label: 'Viewed',
-                  icon: Icons.visibility_outlined,
-                  iconColor: accent,
+                  value: '${member.yearsExperience}',
+                  label: 'Years',
+                  icon: Icons.workspace_premium_outlined,
+                  iconColor: primary,
                 ),
               ),
               Expanded(
                 child: _ProviderMiniStat(
-                  value: '${member.activityNames.length}',
-                  label: 'Activities',
-                  icon: Icons.explore_outlined,
+                  value: '${member.publishedToursCount}',
+                  label: 'Tours',
+                  icon: Icons.route_rounded,
                   iconColor: accent,
                 ),
               ),
@@ -2277,7 +2799,7 @@ class _ProviderIdentityCard extends StatelessWidget {
                   value: '${member.destinationNames.length}',
                   label: 'Destinations',
                   icon: Icons.map_outlined,
-                  iconColor: accent,
+                  iconColor: primary,
                 ),
               ),
             ],
@@ -2296,181 +2818,174 @@ class _ProviderTrustPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final metrics = <({IconData icon, String value, String label})>[
+    const primary = Color(0xFF165B5D);
+    const secondary = Color(0xFFF46627);
+
+    final items = <({IconData icon, String title, String subtitle})>[
       (
         icon: Icons.schedule_rounded,
-        value: member.responseTimeLabel,
-        label: 'Response time',
+        title: member.responseTimeLabel,
+        subtitle: 'Typical response',
+      ),
+      (
+        icon: Icons.translate_rounded,
+        title: member.languages.isEmpty
+            ? 'Local expert'
+            : member.languages.take(2).join(' • '),
+        subtitle: 'Languages',
       ),
       (
         icon: Icons.workspace_premium_outlined,
-        value: '${member.yearsExperience} years',
-        label: 'Experience',
+        title: '${member.yearsExperience} years',
+        subtitle: 'Safari experience',
       ),
       (
         icon: Icons.route_rounded,
-        value: '${member.publishedToursCount}',
-        label: 'Published tours',
+        title: '${member.publishedToursCount}',
+        subtitle: 'Published safaris',
       ),
-      (
-        icon: Icons.visibility_outlined,
-        value: _compactCount(member.viewCount),
-        label: 'Viewed',
-      ),
-      (
-        icon: Icons.star_rounded,
-        value:
-            member.travellerRatingCount == 0
-                ? 'New'
-                : member.travellerRatingAverage.toStringAsFixed(1),
-        label: 'Traveller rating',
-      ),
-      if (member.isGuide)
-        (
-          icon: Icons.business_center_outlined,
-          value:
-              member.operatorRatingCount == 0
-                  ? 'New'
-                  : member.operatorRatingAverage.toStringAsFixed(1),
-          label: 'Operator rating',
-        ),
     ];
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: colors.outlineVariant.withOpacity(.62)),
+        color: primary,
+        borderRadius: BorderRadius.circular(27),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(.18),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.shield_outlined, color: colors.primary, size: 21),
-              const SizedBox(width: 7),
-              Text(
-                'Trust & Experience',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.shield_outlined,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Professional profile',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      member.isVerified
+                          ? 'Identity reviewed by Tourism Portal'
+                          : 'Profile information supplied by this provider',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(.70),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               if (member.isVerified)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 9,
-                    vertical: 5,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: colors.primaryContainer,
+                    color: secondary,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.verified_rounded,
-                        size: 15,
-                        color: colors.onPrimaryContainer,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Admin verified',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onPrimaryContainer,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    'VERIFIED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      letterSpacing: .45,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 14),
+
+          const SizedBox(height: 15),
+
           LayoutBuilder(
             builder: (context, constraints) {
               final width = (constraints.maxWidth - 10) / 2;
+
               return Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children:
-                    metrics
-                        .map(
-                          (metric) => SizedBox(
-                            width: width,
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceContainerHighest
-                                    .withOpacity(.46),
-                                borderRadius: BorderRadius.circular(17),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    metric.icon,
-                                    color: colors.primary,
-                                    size: 19,
+                children: items.map((item) {
+                  return SizedBox(
+                    width: width,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.09),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(.10),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            item.icon,
+                            color: const Color(0xFFFFC75A),
+                            size: 19,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          metric.value,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.labelLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                        ),
-                                        Text(
-                                          metric.label,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                                color: colors.onSurface
-                                                    .withOpacity(.56),
-                                              ),
-                                        ),
-                                      ],
-                                    ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  item.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: Colors.white.withOpacity(.62),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
-                        )
-                        .toList(),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               );
             },
           ),
-          if (member.languages.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.translate_rounded, color: colors.primary, size: 19),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    member.languages.join(' • '),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
@@ -2526,8 +3041,8 @@ class _ProviderMiniStat extends StatelessWidget {
   }
 }
 
-class _OperatorProfileBanner extends StatelessWidget {
-  const _OperatorProfileBanner({required this.member});
+class _GuidePublicAffiliationsSection extends StatelessWidget {
+  const _GuidePublicAffiliationsSection({required this.member});
 
   final CommunityMember member;
 
@@ -2535,71 +3050,552 @@ class _OperatorProfileBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+
+    if (member.publicAffiliations.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _ProviderSectionHeading(
+          title: 'Professional affiliation',
+          subtitle:
+              'Tour operators this guide publicly works with on the platform.',
+        ),
+        const SizedBox(height: 14),
+        ...member.publicAffiliations.map(
+          (affiliation) => Padding(
+            padding: const EdgeInsets.only(bottom: 11),
+            child: Material(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(24),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap:
+                    () => _openProviderProfile(context, affiliation.operator),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: colors.outlineVariant.withOpacity(.66),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _PublicOperatorLogo(operator: affiliation.operator),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Works with',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: colors.onSurface.withOpacity(.52),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    affiliation.operator.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -.2,
+                                        ),
+                                  ),
+                                ),
+                                if (affiliation.operator.isVerified) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    color: colors.primary,
+                                    size: 18,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 7),
+                            Wrap(
+                              spacing: 7,
+                              runSpacing: 7,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.primary.withOpacity(.08),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    affiliation.relationshipLabel,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: colors.primary,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                if (affiliation.operator.country
+                                    .trim()
+                                    .isNotEmpty)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _RectangularCountryFlag(
+                                        countryName:
+                                            affiliation.operator.country,
+                                        width: 25,
+                                        height: 16,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        affiliation.operator.country,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: colors.onSurface
+                                                  .withOpacity(.62),
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 37,
+                        height: 37,
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer.withOpacity(.60),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: colors.primary,
+                          size: 19,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PublicOperatorLogo extends StatelessWidget {
+  const _PublicOperatorLogo({required this.operator});
+
+  final CommunityMember operator;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final initials = _initials(operator.name);
+
+    final fallback = Container(
+      alignment: Alignment.center,
+      color: colors.primaryContainer.withOpacity(.55),
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: colors.onPrimaryContainer,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      width: 76,
+      height: 56,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            colors.secondary,
-            Color.lerp(colors.secondary, colors.primary, .48)!,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: colors.outlineVariant.withOpacity(.72)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(7),
+        child:
+            operator.profilePhotoUrl.isEmpty
+                ? fallback
+                : Image.network(
+                  operator.profilePhotoUrl,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => fallback,
+                ),
+      ),
+    );
+  }
+}
+
+class _OperatorSafariTeamSection extends StatefulWidget {
+  const _OperatorSafariTeamSection({required this.operator});
+
+  final CommunityMember operator;
+
+  @override
+  State<_OperatorSafariTeamSection> createState() =>
+      _OperatorSafariTeamSectionState();
+}
+
+class _OperatorSafariTeamSectionState
+    extends State<_OperatorSafariTeamSection> {
+  late final PageController _controller = PageController(viewportFraction: .82);
+
+  int _current = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final team = widget.operator.safariTeam;
+
+    if (team.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const Expanded(
+              child: _ProviderSectionHeading(
+                title: 'Our Safari Team',
+                subtitle:
+                    'Meet the local guides behind this operator’s journeys.',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: colors.primaryContainer.withOpacity(.72),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '${team.length} ${team.length == 1 ? 'guide' : 'guides'}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.onPrimaryContainer,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ],
+        ),
+        const SizedBox(height: 15),
+        SizedBox(
+          height: 286,
+          child: PageView.builder(
+            controller: _controller,
+            padEnds: false,
+            physics: const BouncingScrollPhysics(),
+            itemCount: team.length,
+            onPageChanged: (index) {
+              setState(() => _current = index);
+            },
+            itemBuilder: (context, index) {
+              final teamMember = team[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == team.length - 1 ? 0 : 13,
+                ),
+                child: _SafariTeamGuideCard(teamMember: teamMember),
+              );
+            },
+          ),
+        ),
+        if (team.length > 1) ...[
+          const SizedBox(height: 11),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              team.length.clamp(0, 7),
+              (index) => AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: index == _current ? 22 : 7,
+                height: 7,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color:
+                      index == _current
+                          ? colors.primary
+                          : colors.outlineVariant,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SafariTeamGuideCard extends StatelessWidget {
+  const _SafariTeamGuideCard({required this.teamMember});
+
+  final SafariTeamMember teamMember;
+
+  CommunityMember get guide => teamMember.guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final fallback = Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF165B5D), Color(0xFF0C3434)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.travel_explore_rounded,
-            color: Colors.white,
-            size: 31,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Explore with a Local Safari Company',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            '${member.activityNames.length} safari activit${member.activityNames.length == 1 ? 'y' : 'ies'} across ${member.destinationNames.length} destination${member.destinationNames.length == 1 ? '' : 's'}.',
-            style: TextStyle(color: Colors.white.withOpacity(.84), height: 1.4),
-          ),
-          if (member.carHireEnabled) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.hiking_rounded,
+        size: 62,
+        color: Colors.white.withOpacity(.20),
+      ),
+    );
+
+    final imageUrl =
+        guide.coverImageUrl.isNotEmpty
+            ? guide.coverImageUrl
+            : guide.profilePhotoUrl;
+
+    return Material(
+      color: const Color(0xFF102825),
+      borderRadius: BorderRadius.circular(26),
+      clipBehavior: Clip.antiAlias,
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(.14),
+      child: InkWell(
+        onTap: () => _openProviderProfile(context, guide),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            imageUrl.isEmpty
+                ? fallback
+                : Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => fallback,
+                ),
+            const DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.16),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withOpacity(.26)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x0A000000),
+                    Color(0x30000000),
+                    Color(0xED071D18),
+                  ],
+                  stops: [0, .48, 1],
+                ),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.directions_car_outlined,
+            ),
+            Positioned(
+              left: 14,
+              top: 14,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(.40),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white.withOpacity(.18)),
+                ),
+                child: Text(
+                  teamMember.relationshipLabel,
+                  style: const TextStyle(
                     color: Colors.white,
-                    size: 18,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
                   ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Car hire available',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Positioned(
+              right: 14,
+              top: 14,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(.92),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_outward_rounded,
+                  color: Color(0xFF165B5D),
+                  size: 18,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _SafariTeamGuideAvatar(guide: guide),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                guide.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.05,
+                                  letterSpacing: -.3,
+                                ),
+                              ),
+                            ),
+                            if (guide.isVerified) ...[
+                              const SizedBox(width: 5),
+                              const Icon(
+                                Icons.verified_rounded,
+                                color: Color(0xFF6CE4A5),
+                                size: 18,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        if (guide.country.trim().isNotEmpty)
+                          Row(
+                            children: [
+                              _RectangularCountryFlag(
+                                countryName: guide.country,
+                                width: 25,
+                                height: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Based in ${guide.country}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(.76),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (guide.languages.isNotEmpty) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            guide.languages.take(3).join(' • '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(.70),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SafariTeamGuideAvatar extends StatelessWidget {
+  const _SafariTeamGuideAvatar({required this.guide});
+
+  final CommunityMember guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      alignment: Alignment.center,
+      color: const Color(0xFF165B5D),
+      child: Text(
+        _initials(guide.name),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+
+    return Container(
+      width: 62,
+      height: 62,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
         ],
+      ),
+      child: ClipOval(
+        child:
+            guide.profilePhotoUrl.isEmpty
+                ? fallback
+                : Image.network(
+                  guide.profilePhotoUrl,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => fallback,
+                ),
       ),
     );
   }
@@ -2855,10 +3851,21 @@ class _ProviderToursSection extends StatelessWidget {
 
   final CommunityMember member;
 
+  static const int _previewLimit = 6;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final previewTours = member.tours.take(_previewLimit).toList();
+
+    final totalTours = member.publishedToursCount > member.tours.length
+        ? member.publishedToursCount
+        : member.tours.length;
+
+    final canViewAll = totalTours > previewTours.length ||
+        member.tours.length > 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2870,9 +3877,12 @@ class _ProviderToursSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    member.isGuide ? 'Guided tours' : 'Safari tours',
+                    member.isGuide
+                        ? 'Guided tours'
+                        : 'Tours by this Operator',
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF165B5D),
+                      fontWeight: FontWeight.w900,
                       letterSpacing: -.5,
                     ),
                   ),
@@ -2880,7 +3890,7 @@ class _ProviderToursSection extends StatelessWidget {
                   Text(
                     member.isGuide
                         ? 'Published journeys personally led by ${member.name}'
-                        : 'Published journeys offered by ${member.name}',
+                        : 'A selection of published safaris from ${member.name}.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.onSurface.withOpacity(.62),
                       height: 1.4,
@@ -2889,36 +3899,90 @@ class _ProviderToursSection extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
+            if (canViewAll)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => _OperatorAllToursPage(
+                        member: member,
+                      ),
+                    ),
+                  );
+                },
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                ),
+                label: const Text(
+                  'View All',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF165B5D),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
+                ),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        Row(
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 11,
+                vertical: 7,
+              ),
               decoration: BoxDecoration(
-                color: colors.primaryContainer,
-                borderRadius: BorderRadius.circular(13),
+                color: const Color(0xFF165B5D).withOpacity(.07),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '${member.tours.length} ${member.tours.length == 1 ? 'tour' : 'tours'}',
+                '$totalTours ${totalTours == 1 ? 'Published Tour' : 'Published Tours'}',
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: colors.onPrimaryContainer,
+                  color: const Color(0xFF165B5D),
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
+            if (totalTours > previewTours.length) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Showing ${previewTours.length}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurface.withOpacity(.52),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
-        const SizedBox(height: 17),
+
+        const SizedBox(height: 15),
+
         SizedBox(
-          height: 326,
+          height: 300,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            itemCount: member.tours.length,
+            itemCount: previewTours.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder:
-                (context, index) => _ProviderTourCard(
-                  tour: member.tours[index],
-                  member: member,
-                ),
+            itemBuilder: (context, index) => _ProviderTourCard(
+              tour: previewTours[index],
+              member: member,
+            ),
           ),
         ),
       ],
@@ -2926,8 +3990,637 @@ class _ProviderToursSection extends StatelessWidget {
   }
 }
 
+class _OperatorAllToursPage extends StatefulWidget {
+  const _OperatorAllToursPage({
+    required this.member,
+  });
+
+  final CommunityMember member;
+
+  @override
+  State<_OperatorAllToursPage> createState() =>
+      _OperatorAllToursPageState();
+}
+
+enum _OperatorTourPriceSort {
+  recommended,
+  lowToHigh,
+  highToLow,
+}
+
+class _OperatorAllToursPageState extends State<_OperatorAllToursPage> {
+  static const _primary = Color(0xFF165B5D);
+  static const _secondary = Color(0xFFF46627);
+  static const _background = Color(0xFFF4EEE1);
+
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _query = '';
+  String _country = 'All';
+  String _activity = 'All Activities';
+  int _duration = 0;
+  _OperatorTourPriceSort _sort =
+      _OperatorTourPriceSort.recommended;
+
+  CommunityMember get member => widget.member;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _countries {
+    final values = member.tours
+        .expand((tour) => tour.countryNames)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...values];
+  }
+
+  List<String> get _activities {
+    final values = member.tours
+        .expand((tour) => tour.activityNames)
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All Activities', ...values];
+  }
+
+  bool _matchesDuration(OperatorTour tour) {
+    switch (_duration) {
+      case 1:
+        return tour.days <= 3;
+      case 2:
+        return tour.days >= 4 && tour.days <= 7;
+      case 3:
+        return tour.days >= 8 && tour.days <= 14;
+      case 4:
+        return tour.days >= 15;
+      default:
+        return true;
+    }
+  }
+
+  List<OperatorTour> get _filteredTours {
+    final query = _query.trim().toLowerCase();
+
+    final tours = member.tours.where((tour) {
+      if (!_matchesDuration(tour)) return false;
+
+      if (_country != 'All' &&
+          !tour.countryNames
+              .map((e) => e.toLowerCase())
+              .contains(_country.toLowerCase())) {
+        return false;
+      }
+
+      if (_activity != 'All Activities' &&
+          !tour.activityNames
+              .map((e) => e.toLowerCase())
+              .contains(_activity.toLowerCase())) {
+        return false;
+      }
+
+      if (query.isEmpty) return true;
+
+      return <String>[
+        tour.name,
+        tour.overview,
+        ...tour.countryNames,
+        ...tour.destinationNames,
+        ...tour.activityNames,
+      ].join(' ').toLowerCase().contains(query);
+    }).toList();
+
+    switch (_sort) {
+      case _OperatorTourPriceSort.lowToHigh:
+        tours.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case _OperatorTourPriceSort.highToLow:
+        tours.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      case _OperatorTourPriceSort.recommended:
+        break;
+    }
+
+    return tours;
+  }
+
+  void _reset() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _country = 'All';
+      _activity = 'All Activities';
+      _duration = 0;
+      _sort = _OperatorTourPriceSort.recommended;
+    });
+  }
+
+  Future<void> _showSort() async {
+    final value = await showModalBottomSheet<_OperatorTourPriceSort>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8DEDA),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Sort Tours',
+                    style: TextStyle(
+                      color: _primary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                _OperatorSortTile(
+                  title: 'Recommended',
+                  selected:
+                      _sort == _OperatorTourPriceSort.recommended,
+                  onTap: () => Navigator.pop(
+                    context,
+                    _OperatorTourPriceSort.recommended,
+                  ),
+                ),
+                _OperatorSortTile(
+                  title: 'Price: Low to High',
+                  selected:
+                      _sort == _OperatorTourPriceSort.lowToHigh,
+                  onTap: () => Navigator.pop(
+                    context,
+                    _OperatorTourPriceSort.lowToHigh,
+                  ),
+                ),
+                _OperatorSortTile(
+                  title: 'Price: High to Low',
+                  selected:
+                      _sort == _OperatorTourPriceSort.highToLow,
+                  onTap: () => Navigator.pop(
+                    context,
+                    _OperatorTourPriceSort.highToLow,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (value != null && mounted) {
+      setState(() => _sort = value);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tours = _filteredTours;
+
+    final hasFilters = _query.isNotEmpty ||
+        _country != 'All' ||
+        _activity != 'All Activities' ||
+        _duration != 0 ||
+        _sort != _OperatorTourPriceSort.recommended;
+
+    return Scaffold(
+      backgroundColor: _background,
+      appBar: AppBar(
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          '${member.name} Tours',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Sort tours',
+            onPressed: _showSort,
+            icon: const Icon(
+              Icons.swap_vert_rounded,
+              color: _primary,
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 10),
+            child: Column(
+              children: [
+                Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: _primary.withOpacity(.09),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) =>
+                        setState(() => _query = value),
+                    decoration: InputDecoration(
+                      hintText: 'Search tours, countries or activities',
+                      border: InputBorder.none,
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: _primary,
+                      ),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _query = '');
+                              },
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                _OperatorFilterStrip(
+                  values: _countries,
+                  selected: _country,
+                  onChanged: (value) =>
+                      setState(() => _country = value),
+                ),
+
+                if (_activities.length > 1) ...[
+                  const SizedBox(height: 8),
+                  _OperatorFilterStrip(
+                    values: _activities,
+                    selected: _activity,
+                    accent: true,
+                    onChanged: (value) =>
+                        setState(() => _activity = value),
+                  ),
+                ],
+
+                const SizedBox(height: 8),
+
+                _OperatorFilterStrip(
+                  values: const [
+                    'Any Duration',
+                    '1–3 Days',
+                    '4–7 Days',
+                    '8–14 Days',
+                    '15+ Days',
+                  ],
+                  selected: const [
+                    'Any Duration',
+                    '1–3 Days',
+                    '4–7 Days',
+                    '8–14 Days',
+                    '15+ Days',
+                  ][_duration],
+                  onChanged: (value) {
+                    const values = [
+                      'Any Duration',
+                      '1–3 Days',
+                      '4–7 Days',
+                      '8–14 Days',
+                      '15+ Days',
+                    ];
+                    setState(() => _duration = values.indexOf(value));
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 18, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${tours.length} ${tours.length == 1 ? 'tour' : 'tours'}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: _primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _showSort,
+                  icon: const Icon(
+                    Icons.swap_vert_rounded,
+                    size: 17,
+                  ),
+                  label: Text(
+                    _sort == _OperatorTourPriceSort.lowToHigh
+                        ? 'Low to High'
+                        : _sort ==
+                                _OperatorTourPriceSort.highToLow
+                            ? 'High to Low'
+                            : 'Sort',
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _primary,
+                  ),
+                ),
+                if (hasFilters)
+                  TextButton(
+                    onPressed: _reset,
+                    child: const Text(
+                      'Reset',
+                      style: TextStyle(
+                        color: _secondary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: tours.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No matching tours found.',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                    itemCount: tours.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final tour = tours[index];
+
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        elevation: 4,
+                        shadowColor: Colors.black.withOpacity(.08),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => _showProviderTour(
+                            context,
+                            tour,
+                            member,
+                          ),
+                          child: SizedBox(
+                            height: 142,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 126,
+                                  height: double.infinity,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(9),
+                                    child: ClipRRect(
+                                      borderRadius:
+                                          BorderRadius.circular(16),
+                                      child: _ProviderTourImage(
+                                        tour: tour,
+                                        accent: _primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      12,
+                                      13,
+                                      8,
+                                      12,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tour.name,
+                                          maxLines: 2,
+                                          overflow:
+                                              TextOverflow.ellipsis,
+                                          style: theme
+                                              .textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight:
+                                                FontWeight.w900,
+                                            height: 1.12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 7),
+                                        Text(
+                                          tour.countryNames.isNotEmpty
+                                              ? tour.countryNames.join(' • ')
+                                              : tour.destinationNames
+                                                      .isNotEmpty
+                                                  ? tour.destinationNames
+                                                      .first
+                                                  : 'East Africa',
+                                          maxLines: 1,
+                                          overflow:
+                                              TextOverflow.ellipsis,
+                                          style: theme
+                                              .textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: const Color(
+                                              0xFF66716E,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
+                                              style: theme
+                                                  .textTheme.labelSmall
+                                                  ?.copyWith(
+                                                fontWeight:
+                                                    FontWeight.w700,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              _tourPrice(tour),
+                                              style: theme
+                                                  .textTheme.labelLarge
+                                                  ?.copyWith(
+                                                color: _primary,
+                                                fontWeight:
+                                                    FontWeight.w900,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.only(right: 9),
+                                  child: Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: _primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OperatorFilterStrip extends StatelessWidget {
+  const _OperatorFilterStrip({
+    required this.values,
+    required this.selected,
+    required this.onChanged,
+    this.accent = false,
+  });
+
+  final List<String> values;
+  final String selected;
+  final ValueChanged<String> onChanged;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = accent
+        ? const Color(0xFFF46627)
+        : const Color(0xFF165B5D);
+
+    return SizedBox(
+      height: 39,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: values.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 7),
+        itemBuilder: (context, index) {
+          final value = values[index];
+          final isSelected = value == selected;
+
+          return Material(
+            color: isSelected
+                ? activeColor.withOpacity(accent ? .12 : 1)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            child: InkWell(
+              onTap: () => onChanged(value),
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isSelected
+                        ? activeColor.withOpacity(accent ? .28 : 1)
+                        : const Color(0xFF165B5D).withOpacity(.08),
+                  ),
+                ),
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: isSelected
+                        ? (accent ? activeColor : Colors.white)
+                        : const Color(0xFF3D4845),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _OperatorSortTile extends StatelessWidget {
+  const _OperatorSortTile({
+    required this.title,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        title,
+        style: TextStyle(
+          color: selected
+              ? const Color(0xFF165B5D)
+              : const Color(0xFF27322F),
+          fontWeight:
+              selected ? FontWeight.w900 : FontWeight.w700,
+        ),
+      ),
+      trailing: selected
+          ? const Icon(
+              Icons.check_circle_rounded,
+              color: Color(0xFF165B5D),
+            )
+          : null,
+    );
+  }
+}
+
 class _ProviderTourCard extends StatelessWidget {
-  const _ProviderTourCard({required this.tour, required this.member});
+  const _ProviderTourCard({
+    required this.tour,
+    required this.member,
+  });
 
   final OperatorTour tour;
   final CommunityMember member;
@@ -2935,140 +4628,213 @@ class _ProviderTourCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent =
-        member.isGuide ? const Color(0xFF22A985) : const Color(0xFF6684D8);
-    final destination =
-        tour.destinationNames.isEmpty
-            ? 'Uganda safari'
-            : tour.destinationNames.first;
+    const primary = Color(0xFF165B5D);
+    const secondary = Color(0xFFF46627);
+
+    final place = tour.countryNames.isNotEmpty
+        ? tour.countryNames.join(' • ')
+        : tour.destinationNames.isNotEmpty
+            ? tour.destinationNames.first
+            : 'East Africa';
 
     return SizedBox(
-      width: 246,
+      width: 268,
       child: Material(
-        color: const Color(0xFF102825),
-        borderRadius: BorderRadius.circular(27),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
         clipBehavior: Clip.antiAlias,
-        elevation: 2,
-        shadowColor: const Color(0x40102E2A),
+        elevation: 5,
+        shadowColor: Colors.black.withOpacity(.11),
         child: InkWell(
-          onTap: () => _showProviderTour(context, tour, member),
-          child: Stack(
-            fit: StackFit.expand,
+          onTap: () => _showProviderTour(
+            context,
+            tour,
+            member,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ProviderTourImage(tour: tour, accent: accent),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x12000000),
-                      Color(0x08000000),
-                      Color(0xE6102522),
-                    ],
-                    stops: [0, .42, 1],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 13,
-                top: 13,
-                child: _TourImageBadge(
-                  icon: Icons.schedule_rounded,
-                  label: '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
-                ),
-              ),
-              Positioned(
-                right: 13,
-                top: 13,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.94),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(
-                    Icons.arrow_outward_rounded,
-                    color: colors.primary,
-                    size: 20,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              SizedBox(
+                height: 154,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      member.isGuide ? 'Guide-Led Safari' : 'Curated Safari',
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.05,
-                      ),
+                    _ProviderTourImage(
+                      tour: tour,
+                      accent: primary,
                     ),
-                    const SizedBox(height: 7),
-                    Text(
-                      tour.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.08,
-                        letterSpacing: -.45,
-                      ),
-                    ),
-                    const SizedBox(height: 9),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          color: Colors.white70,
-                          size: 16,
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x00000000),
+                            Color(0x22000000),
+                            Color(0xC9000000),
+                          ],
+                          stops: [0, .58, 1],
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            destination,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white.withOpacity(.78),
-                            ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 13,
+                      top: 13,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(.42),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(.18),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _tourPrice(tour),
-                          style: theme.textTheme.titleMedium?.copyWith(
+                        child: Text(
+                          '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
+                          style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(width: 5),
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: Text(
-                            'per person',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.white60,
-                            ),
-                          ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 13,
+                      top: 13,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(.94),
+                          shape: BoxShape.circle,
                         ),
-                      ],
+                        child: const Icon(
+                          Icons.arrow_outward_rounded,
+                          color: primary,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 14,
+                      right: 14,
+                      bottom: 13,
+                      child: Text(
+                        tour.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          height: 1.08,
+                          letterSpacing: -.25,
+                        ),
+                      ),
                     ),
                   ],
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    14,
+                    10,
+                    14,
+                    11,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: primary,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              place,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFF66716E),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (tour.activityNames.isNotEmpty) ...[
+                        const SizedBox(height: 9),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: tour.activityNames
+                              .take(2)
+                              .map(
+                                (activity) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: primary.withOpacity(.06),
+                                    borderRadius:
+                                        BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    activity,
+                                    style: theme.textTheme.labelSmall
+                                        ?.copyWith(
+                                      color: primary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      Divider(
+                        height: 1,
+                        thickness: .7,
+                        color: primary.withOpacity(.075),
+                      ),
+
+                      const SizedBox(height: 9),
+
+                      Row(
+                        children: [
+                          Text(
+                            member.isGuide ? 'Guide-led' : 'Operator safari',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: secondary,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            _tourPrice(tour),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: primary,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -3149,213 +4915,17 @@ Future<void> _showProviderTour(
   BuildContext context,
   OperatorTour tour,
   CommunityMember member,
-) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => _ProviderTourDetailsSheet(tour: tour, member: member),
-  );
-}
+) async {
+  await DiscoveryStore.instance.recordView(DiscoveryRecord.fromTour(tour));
 
-class _ProviderTourDetailsSheet extends StatelessWidget {
-  const _ProviderTourDetailsSheet({required this.tour, required this.member});
-
-  final OperatorTour tour;
-  final CommunityMember member;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent =
-        member.isGuide ? const Color(0xFF147D64) : const Color(0xFF4967C6);
-    return DraggableScrollableSheet(
-      initialChildSize: .88,
-      minChildSize: .56,
-      maxChildSize: .96,
-      expand: false,
-      builder:
-          (context, controller) => Material(
-            color: colors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            clipBehavior: Clip.antiAlias,
-            child: ListView(
-              controller: controller,
-              padding: EdgeInsets.zero,
-              children: [
-                Stack(
-                  children: [
-                    SizedBox(
-                      height: 282,
-                      width: double.infinity,
-                      child: _ProviderTourImage(tour: tour, accent: accent),
-                    ),
-                    const Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Color(0xB8000000)],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      top: 12,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(.72),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          const Spacer(),
-                          Material(
-                            color: Colors.black.withOpacity(.38),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              tooltip: 'Close',
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            member.isGuide ? 'Guided by' : 'Offered by',
-                            style: TextStyle(
-                              color:
-                                  member.isGuide
-                                      ? const Color(0xFF63E0BC)
-                                      : const Color(0xFFAEC0FF),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            member.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tour.name,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          height: 1.13,
-                          letterSpacing: -.55,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _tourPrice(tour),
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: accent,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accent.withOpacity(.1),
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: Text(
-                              '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
-                              style: TextStyle(
-                                color: accent,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (tour.destinationNames.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        _TourDetailGroup(
-                          title: 'Destinations',
-                          icon: Icons.location_on_outlined,
-                          values: tour.destinationNames,
-                          accent: accent,
-                        ),
-                      ],
-                      if (tour.activityNames.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        _TourDetailGroup(
-                          title: 'Safari activities',
-                          icon: Icons.explore_outlined,
-                          values: tour.activityNames,
-                          accent: accent,
-                        ),
-                      ],
-                      if (tour.itinerary.isNotEmpty) ...[
-                        const SizedBox(height: 26),
-                        SafariTrail(stops: tour.itinerary, accent: accent),
-                      ],
-                      const SizedBox(height: 24),
-                      Text(
-                        'About This Tour',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        tour.overview,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.65,
-                          color: colors.onSurface.withOpacity(.76),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-    );
+  if (!context.mounted) {
+    return;
   }
+
+  await Navigator.push<void>(
+    context,
+    MaterialPageRoute<void>(builder: (_) => TourDetailsPage(tour: tour)),
+  );
 }
 
 class _TourDetailGroup extends StatelessWidget {
@@ -3435,6 +5005,354 @@ String _tourPrice(OperatorTour tour) {
   }
   final decimals = parts.length == 2 ? '.${parts[1]}' : '';
   return '${tour.currency.isEmpty ? 'USD' : tour.currency} $buffer$decimals';
+}
+
+
+class _OperatorCarHireProfileSection extends StatefulWidget {
+  const _OperatorCarHireProfileSection({
+    required this.operator,
+  });
+
+  final CommunityMember operator;
+
+  @override
+  State<_OperatorCarHireProfileSection> createState() =>
+      _OperatorCarHireProfileSectionState();
+}
+
+class _OperatorCarHireProfileSectionState
+    extends State<_OperatorCarHireProfileSection> {
+  static const _primary = Color(0xFF165B5D);
+  static const _secondary = Color(0xFFF46627);
+
+  late Future<List<CarHireVehicle>> _vehicles;
+
+  @override
+  void initState() {
+    super.initState();
+    _vehicles = _load();
+  }
+
+  Future<List<CarHireVehicle>> _load() async {
+    final result =
+        await OperatorOfferingsService.instance.fetchVehicles(
+      page: 1,
+      perPage: 20,
+      query: widget.operator.name,
+    );
+
+    final exact = result.vehicles.where((vehicle) {
+      if (vehicle.operatorId > 0) {
+        return vehicle.operatorId == widget.operator.id;
+      }
+
+      return vehicle.operatorName.trim().toLowerCase() ==
+          widget.operator.name.trim().toLowerCase();
+    }).toList();
+
+    return exact;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<CarHireVehicle>>(
+      future: _vehicles,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ProviderSectionHeading(
+                title: 'Safari Car Hire',
+                subtitle:
+                    'Vehicles available directly from this safari provider.',
+              ),
+              const SizedBox(height: 14),
+              const PremiumSkeleton(height: 180),
+            ],
+          );
+        }
+
+        final vehicles = snapshot.data ?? const <CarHireVehicle>[];
+
+        if (snapshot.hasError || vehicles.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final preview = vehicles.take(3).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Expanded(
+                  child: _ProviderSectionHeading(
+                    title: 'Safari Car Hire',
+                    subtitle:
+                        'Hire a safari-ready vehicle directly from this safari provider.',
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => CarHirePage(
+                          initialQuery:
+                              widget.operator.name,
+                        ),
+                      ),
+                    );
+                  },
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'View All',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+              decoration: BoxDecoration(
+                color: _primary,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primary.withOpacity(.16),
+                    blurRadius: 20,
+                    offset: const Offset(0, 9),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_car_filled_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${vehicles.length} ${vehicles.length == 1 ? 'vehicle' : 'vehicles'} currently available',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _secondary,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'ACTIVE',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 13),
+
+            SizedBox(
+              height: 224,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                itemCount: preview.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  return _OperatorVehiclePreviewCard(
+                    vehicle: preview[index],
+                    onTap: () {
+                      Navigator.push<void>(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => CarHireVehicleDetailsPage(
+                          vehicle: preview[index],
+                        ),
+                      ),
+                    );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _OperatorVehiclePreviewCard extends StatelessWidget {
+  const _OperatorVehiclePreviewCard({
+    required this.vehicle,
+    required this.onTap,
+  });
+
+  final CarHireVehicle vehicle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 230,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        elevation: 4,
+        shadowColor: Colors.black.withOpacity(.10),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 128,
+                width: double.infinity,
+                child: vehicle.imageUrl.isEmpty
+                    ? Container(
+                        color: const Color(0xFF165B5D)
+                            .withOpacity(.08),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.directions_car_filled_rounded,
+                          size: 44,
+                          color: Color(0xFF165B5D),
+                        ),
+                      )
+                    : Image.network(
+                        vehicle.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFF165B5D)
+                              .withOpacity(.08),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.directions_car_filled_rounded,
+                            size: 44,
+                            color: Color(0xFF165B5D),
+                          ),
+                        ),
+                      ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    13,
+                    11,
+                    13,
+                    12,
+                  ),
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        vehicle.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        <String>[
+                          if ((vehicle.transmission ?? '')
+                              .trim()
+                              .isNotEmpty)
+                            vehicle.transmission!.trim(),
+                          if (vehicle.seats != null)
+                            '${vehicle.seats} seats',
+                        ].join(' • '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(
+                          color: const Color(0xFF66716E),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _vehiclePrice(vehicle),
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(
+                          color: const Color(0xFF165B5D),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _vehiclePrice(CarHireVehicle vehicle) {
+  final currency = vehicle.currency.trim().isEmpty
+      ? 'USD'
+      : vehicle.currency.toUpperCase();
+
+  final amount = vehicle.pricePerDay.toStringAsFixed(
+    vehicle.pricePerDay ==
+            vehicle.pricePerDay.roundToDouble()
+        ? 0
+        : 2,
+  );
+
+  return '$currency $amount / day';
 }
 
 class _ProviderAboutSection extends StatelessWidget {
@@ -3652,7 +5570,10 @@ class _CatalogReferencePageState extends State<_CatalogReferencePage> {
       future: _item,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          return CatalogDetailPage(item: snapshot.data!);
+          final item = snapshot.data!;
+          return item.isActivity
+              ? ActivityDetailsPage(item: item)
+              : DestinationDetailsPage(item: item);
         }
 
         return Scaffold(
@@ -4047,14 +5968,49 @@ IconData _socialIcon(String key) {
 }
 
 class _ProviderSectionHeading extends StatelessWidget {
-  const _ProviderSectionHeading({required this.title, required this.subtitle});
+  const _ProviderSectionHeading({
+    required this.title,
+    required this.subtitle,
+  });
 
   final String title;
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) =>
-      AppSectionHeader(title: title, subtitle: subtitle);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 34,
+          height: 3,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF46627),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: const Color(0xFF165B5D),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.35,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: const Color(0xFF66716E),
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _ProfileLoadNotice extends StatelessWidget {

@@ -67,12 +67,13 @@ class AdminProvider {
       email: json['email']?.toString() ?? '',
       profilePhoto: json['profile_photo']?.toString() ?? '',
       country: json['country']?.toString() ?? '',
-      languages: json['languages'] is List
-          ? (json['languages'] as List)
-              .map((item) => item.toString())
-              .where((item) => item.isNotEmpty)
-              .toList()
-          : const [],
+      languages:
+          json['languages'] is List
+              ? (json['languages'] as List)
+                  .map((item) => item.toString())
+                  .where((item) => item.isNotEmpty)
+                  .toList()
+              : const [],
       yearsExperience: _integer(json['years_experience']),
       responseTimeMinutes: _nullableInteger(json['response_time_minutes']),
       profileViews: _integer(json['profile_views']),
@@ -81,8 +82,7 @@ class AdminProvider {
       travellerRatingCount: _integer(json['traveller_rating_count']),
       operatorRatingAverage: _number(json['operator_rating_average']),
       operatorRatingCount: _integer(json['operator_rating_count']),
-      verificationStatus:
-          json['verification_status']?.toString() ?? 'pending',
+      verificationStatus: json['verification_status']?.toString() ?? 'pending',
       verifiedAt: _date(json['verified_at']),
       reviewedAt: _date(json['verification_reviewed_at']),
       verificationNotes: json['verification_notes']?.toString() ?? '',
@@ -107,18 +107,21 @@ class AdminProviderQueue {
 
   factory AdminProviderQueue.fromJson(Map<String, dynamic> json) {
     final raw = json['providers'];
-    final counts = json['counts'] is Map
-        ? Map<String, dynamic>.from(json['counts'] as Map)
-        : <String, dynamic>{};
+    final counts =
+        json['counts'] is Map
+            ? Map<String, dynamic>.from(json['counts'] as Map)
+            : <String, dynamic>{};
     return AdminProviderQueue(
-      providers: raw is List
-          ? raw
-              .whereType<Map>()
-              .map((item) => AdminProvider.fromJson(
-                    Map<String, dynamic>.from(item),
-                  ))
-              .toList()
-          : const [],
+      providers:
+          raw is List
+              ? raw
+                  .whereType<Map>()
+                  .map(
+                    (item) =>
+                        AdminProvider.fromJson(Map<String, dynamic>.from(item)),
+                  )
+                  .toList()
+              : const [],
       pending: _integer(counts['pending']),
       verified: _integer(counts['verified']),
       rejected: _integer(counts['rejected']),
@@ -127,12 +130,10 @@ class AdminProviderQueue {
 }
 
 int _integer(dynamic value) => int.tryParse(value?.toString() ?? '') ?? 0;
-double _number(dynamic value) =>
-    double.tryParse(value?.toString() ?? '') ?? 0;
+double _number(dynamic value) => double.tryParse(value?.toString() ?? '') ?? 0;
 int? _nullableInteger(dynamic value) {
   final text = value?.toString().trim() ?? '';
   return text.isEmpty ? null : int.tryParse(text);
 }
 
-DateTime? _date(dynamic value) =>
-    DateTime.tryParse(value?.toString() ?? '');
+DateTime? _date(dynamic value) => DateTime.tryParse(value?.toString() ?? '');

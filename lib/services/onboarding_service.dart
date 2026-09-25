@@ -33,27 +33,37 @@ class OnboardingService {
     try {
       final token = admin ? await AuthService.instance.requireToken() : null;
       baseUrl = await AuthService.instance.resolveBaseUrl();
-      final response = await http.get(
-        Uri.parse('$baseUrl${admin ? '/admin/onboarding-slides' : '/onboarding-slides'}'),
-        headers: {
-          'Accept': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      ).timeout(_timeout);
+      final response = await http
+          .get(
+            Uri.parse(
+              '$baseUrl${admin ? '/admin/onboarding-slides' : '/onboarding-slides'}',
+            ),
+            headers: {
+              'Accept': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(_timeout);
       final data = _decode(response);
       final rawSlides = data['slides'];
       if (rawSlides is! List) throw const FormatException();
       return rawSlides
           .whereType<Map>()
-          .map((item) => OnboardingSlide.fromJson(Map<String, dynamic>.from(item)))
+          .map(
+            (item) => OnboardingSlide.fromJson(Map<String, dynamic>.from(item)),
+          )
           .toList();
     } on ApiEndpointUnavailable {
       if (!admin) return fallbackOnboardingSlides;
-      throw const ApiException('Cannot reach the onboarding settings. Check the API connection.');
+      throw const ApiException(
+        'Cannot reach the onboarding settings. Check the API connection.',
+      );
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
       if (!admin) return fallbackOnboardingSlides;
-      throw const ApiException('The onboarding settings connection was interrupted.');
+      throw const ApiException(
+        'The onboarding settings connection was interrupted.',
+      );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
       if (!admin) return fallbackOnboardingSlides;
@@ -79,27 +89,35 @@ class OnboardingService {
     String? baseUrl;
     try {
       baseUrl = await AuthService.instance.resolveBaseUrl();
-      final path = slide == null
-          ? '/admin/onboarding-slides'
-          : '/admin/onboarding-slides/${slide.id}';
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'))
-        ..headers.addAll({
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        })
-        ..fields.addAll({
-          'title': title.trim(),
-          'subtitle': subtitle.trim(),
-          'button_label': buttonLabel.trim(),
-          'is_active': isActive ? '1' : '0',
-        });
+      final path =
+          slide == null
+              ? '/admin/onboarding-slides'
+              : '/admin/onboarding-slides/${slide.id}';
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$baseUrl$path'))
+            ..headers.addAll({
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            })
+            ..fields.addAll({
+              'title': title.trim(),
+              'subtitle': subtitle.trim(),
+              'button_label': buttonLabel.trim(),
+              'is_active': isActive ? '1' : '0',
+            });
       if (imagePath != null) {
-        request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+        request.files.add(
+          await http.MultipartFile.fromPath('image', imagePath),
+        );
       }
-      final streamed = await request.send().timeout(const Duration(seconds: 90));
+      final streamed = await request.send().timeout(
+        const Duration(seconds: 90),
+      );
       _decode(await http.Response.fromStream(streamed));
     } on ApiEndpointUnavailable {
-      throw const ApiException('Cannot save this slide. Check the API connection.');
+      throw const ApiException(
+        'Cannot save this slide. Check the API connection.',
+      );
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
       throw const ApiException('The slide upload connection was interrupted.');
@@ -144,10 +162,14 @@ class OnboardingService {
       final streamed = await request.send().timeout(_timeout);
       _decode(await http.Response.fromStream(streamed));
     } on ApiEndpointUnavailable {
-      throw const ApiException('Cannot update the onboarding settings. Check the API connection.');
+      throw const ApiException(
+        'Cannot update the onboarding settings. Check the API connection.',
+      );
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
-      throw const ApiException('The onboarding settings connection was interrupted.');
+      throw const ApiException(
+        'The onboarding settings connection was interrupted.',
+      );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
       throw const ApiException('Updating the onboarding settings timed out.');
@@ -157,7 +179,8 @@ class OnboardingService {
   }
 
   Map<String, dynamic> _decode(http.Response response) {
-    final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final decoded =
+        response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
     if (decoded is! Map) throw const FormatException();
     final data = Map<String, dynamic>.from(decoded);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -172,7 +195,9 @@ class OnboardingService {
         }
       }
       throw ApiException(
-        validationMessage ?? data['message']?.toString() ?? 'The onboarding request failed.',
+        validationMessage ??
+            data['message']?.toString() ??
+            'The onboarding request failed.',
         statusCode: response.statusCode,
       );
     }

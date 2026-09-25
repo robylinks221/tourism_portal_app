@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 import '../services/session_navigation.dart';
 import '../widgets/current_user_avatar.dart';
 import 'admin_catalog_page.dart';
+import 'admin_awards_hub_page.dart';
+import 'admin_countries_page.dart';
 import 'admin_onboarding_slides_page.dart';
 import 'admin_provider_verification_page.dart';
 
@@ -21,9 +23,10 @@ class AdminHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const darkGreen = Color(0xFF12372A);
-    const primaryGreen = Color(0xFF2E7D32);
-    const backgroundColor = Color(0xFFF6F8F5);
+    const darkGreen = Color(0xFF165B5D);
+    const primaryGreen = Color(0xFF165B5D);
+    const secondary = Color(0xFFF46627);
+    const backgroundColor = Color(0xFFF4EEE1);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -37,27 +40,20 @@ class AdminHomePage extends StatelessWidget {
             SizedBox(width: 10),
             Text(
               'Tourism Portal',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
           ],
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              _showComingSoon(context, 'Notifications');
-            },
+            onPressed: () => _showComingSoon(context, 'Notifications'),
             icon: const Badge(
               smallSize: 8,
               child: Icon(Icons.notifications_outlined),
             ),
           ),
           IconButton(
-            onPressed: () {
-              _showComingSoon(context, 'Admin profile');
-            },
+            onPressed: () => _showComingSoon(context, 'Admin profile'),
             icon: const CurrentUserAvatar(
               radius: 17,
               backgroundColor: Colors.white,
@@ -83,19 +79,16 @@ class AdminHomePage extends StatelessWidget {
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      darkGreen,
-                      primaryGreen,
-                    ],
+                    colors: [Color(0xFF0B3D3F), primaryGreen],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x332E7D32),
+                      color: darkGreen.withValues(alpha: .18),
                       blurRadius: 20,
-                      offset: Offset(0, 10),
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -111,10 +104,10 @@ class AdminHomePage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Welcome back',
                             style: TextStyle(
-                              color: Color(0xFFC8E6C9),
+                              color: Colors.white.withValues(alpha: .74),
                               fontSize: 14,
                             ),
                           ),
@@ -131,10 +124,7 @@ class AdminHomePage extends StatelessWidget {
                           const SizedBox(height: 5),
                           const Text(
                             'Manage the Tourism Portal.',
-                            style: TextStyle(
-                              color: Color(0xFFE8F5E9),
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.white, fontSize: 14),
                           ),
                         ],
                       ),
@@ -143,14 +133,7 @@ class AdminHomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'System Overview',
-                style: TextStyle(
-                  color: darkGreen,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              const _SectionTitle('System Overview'),
               const SizedBox(height: 14),
               const Row(
                 children: [
@@ -190,71 +173,13 @@ class AdminHomePage extends StatelessWidget {
                       icon: Icons.pending_actions_outlined,
                       value: '0',
                       label: 'Pending',
-                      color: Color(0xFFF57F17),
+                      color: secondary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
-              const Text(
-                'User Roles',
-                style: TextStyle(
-                  color: darkGreen,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFE1E8E2),
-                  ),
-                ),
-                child: const Column(
-                  children: [
-                    _UserRoleRow(
-                      icon: Icons.travel_explore_rounded,
-                      title: 'Tourists',
-                      value: '0',
-                      color: primaryGreen,
-                    ),
-                    Divider(height: 26),
-                    _UserRoleRow(
-                      icon: Icons.hiking_rounded,
-                      title: 'Tourist Guides',
-                      value: '0',
-                      color: Color(0xFF7B1FA2),
-                    ),
-                    Divider(height: 26),
-                    _UserRoleRow(
-                      icon: Icons.business_rounded,
-                      title: 'Tour Operators',
-                      value: '0',
-                      color: Color(0xFF0277BD),
-                    ),
-                    Divider(height: 26),
-                    _UserRoleRow(
-                      icon: Icons.admin_panel_settings_rounded,
-                      title: 'Administrators',
-                      value: '1',
-                      color: Color(0xFFC62828),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                'Quick Actions',
-                style: TextStyle(
-                  color: darkGreen,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              const _SectionTitle('Quick Actions'),
               const SizedBox(height: 14),
               GridView.count(
                 crossAxisCount: 2,
@@ -262,70 +187,85 @@ class AdminHomePage extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.25,
+                childAspectRatio: 1.18,
                 children: [
+                  _AdminActionCard(
+                    icon: Icons.public_rounded,
+                    title: 'Countries',
+                    subtitle: 'Images & country hubs',
+                    color: secondary,
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminCountriesPage(),
+                          ),
+                        ),
+                  ),
+                  _AdminActionCard(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'Guide Awards',
+                    subtitle: 'Manage awards & judging',
+                    color: secondary,
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminAwardsHubPage(),
+                          ),
+                        ),
+                  ),
                   _AdminActionCard(
                     icon: Icons.manage_accounts_outlined,
                     title: 'Manage Users',
                     subtitle: 'View all accounts',
                     color: primaryGreen,
-                    onTap: () {
-                      _showComingSoon(context, 'Manage Users');
-                    },
+                    onTap: () => _showComingSoon(context, 'Manage Users'),
                   ),
                   _AdminActionCard(
                     icon: Icons.verified_user_outlined,
                     title: 'Approvals',
                     subtitle: 'Review accounts',
-                    color: const Color(0xFFF57F17),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminProviderVerificationPage(),
+                    color: secondary,
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => const AdminProviderVerificationPage(),
+                          ),
                         ),
-                      );
-                    },
                   ),
                   _AdminActionCard(
                     icon: Icons.landscape_outlined,
                     title: 'Tourism Catalog',
                     subtitle: 'Activities & destinations',
                     color: const Color(0xFF7B1FA2),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminCatalogPage(),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminCatalogPage(),
+                          ),
                         ),
-                      );
-                    },
                   ),
                   _AdminActionCard(
                     icon: Icons.view_carousel_outlined,
                     title: 'First Page Slides',
                     subtitle: 'Manage onboarding',
                     color: const Color(0xFF0277BD),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminOnboardingSlidesPage(),
+                    onTap:
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminOnboardingSlidesPage(),
+                          ),
                         ),
-                      );
-                    },
                   ),
                 ],
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Provider verification',
-                style: TextStyle(
-                  color: darkGreen,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              const _SectionTitle('Provider verification'),
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
@@ -336,9 +276,7 @@ class AdminHomePage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFE1E8E2),
-                  ),
+                  border: Border.all(color: darkGreen.withValues(alpha: .08)),
                 ),
                 child: Column(
                   children: [
@@ -368,31 +306,16 @@ class AdminHomePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     FilledButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminProviderVerificationPage(),
-                        ),
-                      ),
+                      onPressed:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const AdminProviderVerificationPage(),
+                            ),
+                          ),
                       icon: const Icon(Icons.verified_user_outlined),
                       label: const Text('Open verification queue'),
-                    ),
-                    const SizedBox(height: 18),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AdminProviderVerificationPage(),
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: primaryGreen,
-                        side: const BorderSide(
-                          color: primaryGreen,
-                        ),
-                      ),
-                      icon: const Icon(Icons.visibility_outlined),
-                      label: const Text('View Applications'),
                     ),
                   ],
                 ),
@@ -403,16 +326,10 @@ class AdminHomePage extends StatelessWidget {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
-        indicatorColor: const Color(0xFFC8E6C9),
+        indicatorColor: primaryGreen.withValues(alpha: .12),
         onDestinationSelected: (index) {
           if (index != 0) {
-            const features = [
-              'Dashboard',
-              'Users',
-              'Approvals',
-              'Settings',
-            ];
-
+            const features = ['Dashboard', 'Users', 'Approvals', 'Settings'];
             _showComingSoon(context, features[index]);
           }
         },
@@ -443,6 +360,23 @@ class AdminHomePage extends StatelessWidget {
   }
 }
 
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFF165B5D),
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
 class _AdminStatCard extends StatelessWidget {
   const _AdminStatCard({
     required this.icon,
@@ -463,9 +397,6 @@ class _AdminStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE5EBE6),
-        ),
       ),
       child: Row(
         children: [
@@ -473,14 +404,10 @@ class _AdminStatCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: .12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 23,
-            ),
+            child: Icon(icon, color: color, size: 23),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -490,7 +417,7 @@ class _AdminStatCard extends StatelessWidget {
                 Text(
                   value,
                   style: const TextStyle(
-                    color: Color(0xFF12372A),
+                    color: Color(0xFF165B5D),
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                   ),
@@ -507,70 +434,6 @@ class _AdminStatCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _UserRoleRow extends StatelessWidget {
-  const _UserRoleRow({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 23,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF12372A),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 6,
-          ),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -594,44 +457,45 @@ class _AdminActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFFE5EBE6),
+              color: const Color(0xFF165B5D).withValues(alpha: .07),
             ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                color: color,
-                size: 30,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 25),
               ),
               const SizedBox(height: 9),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Color(0xFF12372A),
+                  color: Color(0xFF165B5D),
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF778078),
-                  fontSize: 14,
-                ),
+                style: const TextStyle(color: Color(0xFF778078), fontSize: 12),
               ),
             ],
           ),

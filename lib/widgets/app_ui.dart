@@ -41,10 +41,7 @@ class AppSectionHeader extends StatelessWidget {
               ),
             ),
             if (actionLabel != null)
-              TextButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              TextButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ),
         if (subtitle?.trim().isNotEmpty == true) ...[
@@ -138,7 +135,8 @@ class AppSaveButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(
           saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          color: saved ? theme.colorScheme.secondary : theme.colorScheme.onSurface,
+          color:
+              saved ? theme.colorScheme.secondary : theme.colorScheme.onSurface,
         ),
       ),
     );
@@ -192,9 +190,9 @@ class AppStatePanel extends StatelessWidget {
               children: [
                 Text(
                   title.toTitleCase(),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(message, maxLines: 3, overflow: TextOverflow.ellipsis),
@@ -216,7 +214,10 @@ class AppStatePanel extends StatelessWidget {
 }
 
 class AppOfflineBanner extends StatelessWidget {
-  const AppOfflineBanner({super.key, this.message = 'You appear to be offline.'});
+  const AppOfflineBanner({
+    super.key,
+    this.message = 'You appear to be offline.',
+  });
 
   final String message;
 

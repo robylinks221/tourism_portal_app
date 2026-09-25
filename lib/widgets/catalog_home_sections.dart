@@ -2,21 +2,29 @@ import 'package:flutter/material.dart';
 
 import '../models/catalog_item.dart';
 import '../models/discovery_item.dart';
-import '../models/mood_discovery.dart';
-import '../models/operator_management.dart';
 import '../models/safari_mood.dart';
-import '../pages/catalog_detail_page.dart';
+import '../pages/activity_details_page.dart';
+import '../pages/destination_details_page.dart';
+import '../pages/safari_mood_page.dart';
 import '../services/catalog_service.dart';
 import '../services/discovery_store.dart';
-import '../services/mood_discovery_service.dart';
-import '../utils/text_case.dart';
 import 'app_ui.dart';
 import 'premium_navigation.dart';
 import 'premium_states.dart';
-import 'safari_trail.dart';
 
 class CatalogHomeSections extends StatefulWidget {
-  const CatalogHomeSections({super.key});
+  const CatalogHomeSections({
+    super.key,
+    this.countryName,
+    this.countryMoodIds = const [],
+    this.countryActivityIds = const [],
+    this.countryDestinationIds = const [],
+  });
+
+  final String? countryName;
+  final List<int> countryMoodIds;
+  final List<int> countryActivityIds;
+  final List<int> countryDestinationIds;
 
   @override
   State<CatalogHomeSections> createState() => _CatalogHomeSectionsState();
@@ -28,11 +36,19 @@ class _CatalogHomeSectionsState extends State<CatalogHomeSections> {
   @override
   void initState() {
     super.initState();
+
+    // Experiences open their own full page.
+    // Clear any old selected Safari Mood state so the legacy
+    // in-page mood panel can never reappear.
+    SafariMoodController.instance.clear();
+
     _catalog = CatalogService.instance.fetchCatalog();
   }
 
   void _retry() {
-    setState(() => _catalog = CatalogService.instance.fetchCatalog());
+    setState(() {
+      _catalog = CatalogService.instance.fetchCatalog();
+    });
   }
 
   @override
@@ -43,685 +59,339 @@ class _CatalogHomeSectionsState extends State<CatalogHomeSections> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const AppDiscoverySkeleton();
         }
+
         if (snapshot.hasError) {
           return AppStatePanel(
             title: 'Safari discovery could not be loaded',
             message:
-                'Check your connection to reload destinations and activities.',
+                'Check your connection to reload experiences and destinations.',
             kind: AppStateKind.offline,
             onRetry: _retry,
           );
         }
 
-        final catalog = snapshot.data!;
-        return ValueListenableBuilder<String?>(
-          valueListenable: SafariMoodController.instance,
-          builder: (context, selectedKey, _) {
-            final moods = catalog.moods;
-            final selectedMood = safariMoodByKey(moods, selectedKey);
-            final effectiveSelectedKey =
-                selectedMood == null ? null : selectedKey;
+        final rawCatalog = snapshot.data!;
+        final hasCountry = widget.countryName?.trim().isNotEmpty == true;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MoodHeading(selectedMood: selectedMood),
-                const SizedBox(height: 16),
-                if (moods.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
+        final destinations = !hasCountry
+            ? rawCatalog.destinations
+            : rawCatalog.destinations
+                .where(
+                  (item) => widget.countryDestinationIds.contains(item.id),
+                )
+                .toList();
+
+        final activities = !hasCountry
+            ? rawCatalog.activities
+            : rawCatalog.activities
+                .where(
+                  (item) => widget.countryActivityIds.contains(item.id),
+                )
+                .toList();
+
+        final catalog = TourismCatalog(
+          moods: rawCatalog.moods,
+          activities: activities,
+          destinations: destinations,
+        );
+        final moods =
+            widget.countryName == null || widget.countryName!.trim().isEmpty
+                ? catalog.moods
+                : catalog.moods
+                    .where((mood) => widget.countryMoodIds.contains(mood.id))
+                    .toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ============================================================
+            // CHOOSE YOUR EXPERIENCE
+            // UNCHANGED
+            // ============================================================
+
+            const AppSectionHeader(
+              title: 'Choose Your Experience',
+              subtitle: 'Start with how you want the journey to feel.',
+            ),
+
+            const SizedBox(height: 16),
+
+            if (moods.isEmpty)
+              _ExperienceEmptyState()
+            else
+              SizedBox(
+                height: 218,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  itemCount: moods.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 13),
+                  itemBuilder: (context, index) {
+                    final mood = moods[index];
+
+                    return _ExperienceCard(
+                      mood: mood,
+                      imageUrl: _experienceImageUrl(
+                        catalog,
+                        mood.key,
+                      ),
+                      onTap: () => _openExperiencePage(
                         context,
-                      ).colorScheme.surfaceContainerHighest.withOpacity(.45),
-                      borderRadius: BorderRadius.circular(20),
+                        mood,
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 30),
+
+            // ============================================================
+            // EXPLORE BY ACTIVITY
+            // UNCHANGED
+            // ============================================================
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Expanded(
+                  child: AppSectionHeader(
+                    title: 'Explore by Activity',
+                    subtitle: 'Find a safari around what you love doing.',
+                  ),
+                ),
+                if (catalog.activities.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push<void>(
+                        premiumPageRoute(
+                          (_) => _AllActivitiesPage(
+                            activities: catalog.activities,
+                          ),
+                        ),
+                      );
+                    },
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                    label: const Text(
+                      'View All',
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    child: const Text(
-                      'Safari moods are being prepared. Explore the destinations below.',
-                    ),
-                  )
-                else
-                  SizedBox(
-                    height: 218,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      clipBehavior: Clip.none,
-                      itemCount: moods.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 13),
-                      itemBuilder: (context, index) {
-                        final mood = moods[index];
-                        return _MoodCard(
-                          mood: mood,
-                          selected: mood.key == effectiveSelectedKey,
-                          imageUrl: _moodImageUrl(catalog, mood.key),
-                          onTap:
-                              () => SafariMoodController.instance.select(
-                                mood.key,
-                              ),
-                        );
-                      },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF165B5D),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 5,
+                      ),
                     ),
                   ),
-                const SizedBox(height: 24),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 280),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child:
-                      selectedMood == null
-                          ? KeyedSubtree(
-                            key: const ValueKey('all-destinations'),
-                            child: _CatalogSection(
-                              title: 'Explore destinations',
-                              subtitle: 'Beautiful places across East Africa',
-                              emptyText:
-                                  'No published destinations are available yet.',
-                              items: catalog.destinations,
-                            ),
-                          )
-                          : KeyedSubtree(
-                            key: ValueKey(effectiveSelectedKey),
-                            child: _MoodDiscoveryResults(
-                              mood: selectedMood,
-                              future: MoodDiscoveryService.instance.fetch(
-                                selectedMood.key,
-                              ),
-                              onRetry:
-                                  () => setState(() {
-                                    MoodDiscoveryService.instance.invalidate(
-                                      selectedMood.key,
-                                    );
-                                  }),
-                            ),
-                          ),
-                ),
               ],
-            );
-          },
+            ),
+
+            const SizedBox(height: 14),
+
+            if (catalog.activities.isEmpty)
+              const _CatalogEmptyResult(
+                icon: Icons.hiking_rounded,
+                message: 'No published activities are available yet.',
+              )
+            else
+              SizedBox(
+                height: 190,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  itemCount: catalog.activities.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    return _ActivityCard(
+                      item: catalog.activities[index],
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 30),
+
+            // ============================================================
+            // EXPLORE DESTINATIONS
+            // REFINED COMPACT DESTINATION CARDS
+            // ============================================================
+
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Expanded(
+                  child: AppSectionHeader(
+                    title: 'Explore Destinations',
+                    subtitle: 'Beautiful places across East Africa',
+                  ),
+                ),
+                if (catalog.destinations.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push<void>(
+                        premiumPageRoute(
+                          (_) => _AllDestinationsPage(
+                            destinations: catalog.destinations,
+                            activities: catalog.activities,
+                          ),
+                        ),
+                      );
+                    },
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'View All',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF165B5D),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 5,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            if (catalog.destinations.isEmpty)
+              const _CatalogEmptyResult(
+                icon: Icons.landscape_rounded,
+                message: 'No published destinations are available yet.',
+              )
+            else
+              SizedBox(
+                height: 222,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  padding: const EdgeInsets.only(
+                    left: 1,
+                    right: 12,
+                  ),
+                  itemCount: catalog.destinations.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    return _DestinationCard(
+                      item: catalog.destinations[index],
+                    );
+                  },
+                ),
+              ),
+          ],
         );
       },
     );
   }
 
-  String _moodImageUrl(TourismCatalog catalog, String moodKey) {
-    final mood = safariMoodByKey(catalog.moods, moodKey);
-    if (mood?.imageUrl.isNotEmpty == true) return mood!.imageUrl;
+  Future<void> _openExperiencePage(
+    BuildContext context,
+    SafariMood mood,
+  ) async {
+    SafariMoodController.instance.clear();
+
+    await Navigator.of(context).push<void>(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 420),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder:
+            (context, animation, secondaryAnimation) =>
+                SafariMoodPage(mood: mood),
+        transitionsBuilder: (
+          context,
+          animation,
+          secondaryAnimation,
+          child,
+        ) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+
+          return FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(
+                begin: .975,
+                end: 1,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _experienceImageUrl(
+    TourismCatalog catalog,
+    String moodKey,
+  ) {
+    final mood = safariMoodByKey(
+      catalog.moods,
+      moodKey,
+    );
+
+    if (mood?.imageUrl.isNotEmpty == true) {
+      return mood!.imageUrl;
+    }
+
     for (final destination in catalog.destinations) {
       if (destination.moods.contains(moodKey) &&
           destination.imageUrl.isNotEmpty) {
         return destination.imageUrl;
       }
     }
+
     for (final activity in catalog.activities) {
-      if (activity.moods.contains(moodKey) && activity.imageUrl.isNotEmpty) {
+      if (activity.moods.contains(moodKey) &&
+          activity.imageUrl.isNotEmpty) {
         return activity.imageUrl;
       }
     }
+
     return '';
   }
 }
 
-class _MoodDiscoveryResults extends StatefulWidget {
-  const _MoodDiscoveryResults({
+// ============================================================================
+// EXPERIENCE CARD
+// UNCHANGED
+// ============================================================================
+
+class _ExperienceCard extends StatelessWidget {
+  const _ExperienceCard({
     required this.mood,
-    required this.future,
-    required this.onRetry,
-  });
-
-  final SafariMood mood;
-  final Future<MoodDiscoveryData> future;
-  final VoidCallback onRetry;
-
-  @override
-  State<_MoodDiscoveryResults> createState() => _MoodDiscoveryResultsState();
-}
-
-class _MoodDiscoveryResultsState extends State<_MoodDiscoveryResults> {
-  int _selectedTab = 0;
-
-  @override
-  void didUpdateWidget(covariant _MoodDiscoveryResults oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.mood.id != widget.mood.id) {
-      _selectedTab = 0;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<MoodDiscoveryData>(
-      future: widget.future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return _MoodDiscoveryLoading(mood: widget.mood);
-        }
-
-        if (snapshot.hasError) {
-          return _MoodDiscoveryError(
-            mood: widget.mood,
-            onRetry: widget.onRetry,
-          );
-        }
-
-        final discovery = snapshot.data!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SelectedMoodHero(
-              mood: discovery.mood,
-              selectedIndex: _selectedTab,
-              activityCount: discovery.activities.length,
-              destinationCount: discovery.destinations.length,
-              tourCount: discovery.tours.length,
-              onChanged: (index) {
-                setState(() {
-                  _selectedTab = index;
-                });
-              },
-            ),
-            const SizedBox(height: 22),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: _selectedContent(discovery),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _selectedContent(MoodDiscoveryData discovery) {
-    switch (_selectedTab) {
-      case 1:
-        return KeyedSubtree(
-          key: ValueKey('destinations-${discovery.mood.id}'),
-          child: _CatalogSection(
-            title: 'Destinations',
-            subtitle: 'Places for ${discovery.mood.title.toLowerCase()}',
-            emptyText:
-                'No published destinations have been assigned to this Safari Mood yet.',
-            items: discovery.destinations,
-          ),
-        );
-
-      case 2:
-        return KeyedSubtree(
-          key: ValueKey('tours-${discovery.mood.id}'),
-          child: _MoodTourSection(mood: discovery.mood, tours: discovery.tours),
-        );
-
-      case 0:
-      default:
-        return KeyedSubtree(
-          key: ValueKey('activities-${discovery.mood.id}'),
-          child: _CatalogSection(
-            title: 'Safari Activities',
-            subtitle: 'Experiences for ${discovery.mood.title.toLowerCase()}',
-            emptyText:
-                'No published activities have been assigned to this Safari Mood yet.',
-            items: discovery.activities,
-          ),
-        );
-    }
-  }
-}
-
-class _SelectedMoodHero extends StatelessWidget {
-  const _SelectedMoodHero({
-    required this.mood,
-    required this.selectedIndex,
-    required this.activityCount,
-    required this.destinationCount,
-    required this.tourCount,
-    required this.onChanged,
-  });
-
-  final SafariMood mood;
-  final int selectedIndex;
-  final int activityCount;
-  final int destinationCount;
-  final int tourCount;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasImage = mood.imageUrl.trim().isNotEmpty;
-
-    return Container(
-      width: double.infinity,
-      height: 310,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.16),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (hasImage)
-            Image.network(
-              mood.imageUrl,
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (_, __, ___) => _MoodHeroFallback(mood: mood),
-            )
-          else
-            _MoodHeroFallback(mood: mood),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x22000000),
-                  Color(0x42000000),
-                  Color(0xE8000000),
-                ],
-                stops: [0, .48, 1],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            top: 20,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(.34),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(.26),
-                    ),
-                  ),
-                  child: Icon(
-                    mood.icon,
-                    color: Colors.white,
-                    size: 25,
-                  ),
-                ),
-                const Spacer(),
-                Material(
-                  color: Colors.black.withOpacity(.34),
-                  borderRadius: BorderRadius.circular(999),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: SafariMoodController.instance.clear,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 9,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.close_rounded,
-                            color: Colors.white,
-                            size: 17,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'Show all',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 86,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mood.title.toTitleCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    height: 1.05,
-                    letterSpacing: -.45,
-                  ),
-                ),
-                if (mood.subtitle.trim().isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    mood.subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withOpacity(.84),
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Positioned(
-            left: 14,
-            right: 14,
-            bottom: 14,
-            child: Container(
-              height: 58,
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(.38),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withOpacity(.18),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _MoodHeroTab(
-                      label: 'Activities',
-                      count: activityCount,
-                      selected: selectedIndex == 0,
-                      onTap: () => onChanged(0),
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: _MoodHeroTab(
-                      label: 'Destinations',
-                      count: destinationCount,
-                      selected: selectedIndex == 1,
-                      onTap: () => onChanged(1),
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: _MoodHeroTab(
-                      label: 'Tours',
-                      count: tourCount,
-                      selected: selectedIndex == 2,
-                      onTap: () => onChanged(2),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MoodHeroFallback extends StatelessWidget {
-  const _MoodHeroFallback({required this.mood});
-
-  final SafariMood mood;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            mood.primaryColor,
-            mood.secondaryColor,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MoodHeroTab extends StatelessWidget {
-  const _MoodHeroTab({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? Colors.white : Colors.transparent,
-      borderRadius: BorderRadius.circular(15),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 7,
-            vertical: 8,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? const Color(0xFF153D36) : Colors.white,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$count',
-                style: TextStyle(
-                  color: selected
-                      ? const Color(0xFF153D36).withOpacity(.68)
-                      : Colors.white.withOpacity(.72),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MoodDiscoveryLoading extends StatelessWidget {
-  const _MoodDiscoveryLoading({required this.mood});
-
-  final SafariMood mood;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            mood.primaryColor.withOpacity(.16),
-            mood.secondaryColor.withOpacity(.06),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: mood.primaryColor.withOpacity(.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: mood.primaryColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(mood.icon, color: Colors.white),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Finding ${mood.title.toLowerCase()}…',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Matching activities, destinations and tours',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              color: mood.primaryColor,
-              backgroundColor: mood.primaryColor.withOpacity(.12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MoodDiscoveryError extends StatelessWidget {
-  const _MoodDiscoveryError({required this.mood, required this.onRetry});
-
-  final SafariMood mood;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer.withOpacity(.42),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.colorScheme.error.withOpacity(.18)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.cloud_off_rounded, color: theme.colorScheme.error),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${mood.title} could not be loaded',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                const Text('Check the connection and try again.'),
-              ],
-            ),
-          ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
-    );
-  }
-}
-
-class _MoodHeading extends StatelessWidget {
-  const _MoodHeading({required this.selectedMood});
-
-  final SafariMood? selectedMood;
-
-  @override
-  Widget build(BuildContext context) {
-    return const AppSectionHeader(
-      title: 'Choose Your Safari Mood',
-      subtitle: 'Start with how you want the journey to feel.',
-    );
-  }
-}
-
-class _MoodCard extends StatelessWidget {
-  const _MoodCard({
-    required this.mood,
-    required this.selected,
     required this.imageUrl,
     required this.onTap,
   });
 
   final SafariMood mood;
-  final bool selected;
   final String imageUrl;
   final VoidCallback onTap;
 
+  static const Color _primary = Color(0xFF165B5D);
+  static const Color _secondary = Color(0xFFF46627);
+
   @override
   Widget build(BuildContext context) {
-    final visual = _MoodVisual.fromMood(mood);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      width: selected ? 194 : 178,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(27),
-        border: Border.all(
-          color: selected ? Colors.white : Colors.transparent,
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: visual.colors.last.withOpacity(selected ? .32 : .2),
-            blurRadius: selected ? 25 : 17,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    final visual = _ExperienceVisual.fromMood(mood);
+
+    return SizedBox(
+      width: 178,
       child: Material(
+        elevation: 10,
+        shadowColor: Colors.black.withValues(alpha: .22),
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(27),
         clipBehavior: Clip.antiAlias,
@@ -731,81 +401,128 @@ class _MoodCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               if (imageUrl.isNotEmpty)
-                Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
+                Hero(
+                  tag: 'safari-mood-${mood.id}',
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) {
+                      return _fallback(visual);
+                    },
+                  ),
+                )
+              else
+                _fallback(visual),
+
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors:
-                        imageUrl.isEmpty
-                            ? [visual.colors.first, visual.colors.last]
-                            : [
-                              visual.colors.first.withOpacity(.18),
-                              visual.colors.last.withOpacity(.94),
-                            ],
+                    colors: [
+                      Colors.black.withValues(alpha: .05),
+                      visual.colors.last.withValues(alpha: .30),
+                      Colors.black.withValues(alpha: .82),
+                    ],
+                    stops: const [
+                      0,
+                      .48,
+                      1,
+                    ],
                   ),
                 ),
               ),
+
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(.18),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(.23),
-                            ),
-                          ),
-                          child: Icon(
-                            visual.icon,
-                            color: Colors.white,
-                            size: 23,
-                          ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .17),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .24),
                         ),
-                        AnimatedOpacity(
-                          opacity: selected ? 1 : 0,
-                          duration: const Duration(milliseconds: 160),
-                          child: const Icon(
-                            Icons.check_circle_rounded,
-                            color: Colors.white,
-                            size: 23,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      mood.title.toTitleCase(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      ),
+                      child: Icon(
+                        visual.icon,
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.08,
-                        letterSpacing: -.25,
+                        size: 24,
                       ),
                     ),
+
+                    const Spacer(),
+
+                    Container(
+                      width: 30,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: _secondary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+
+                    const SizedBox(height: 9),
+
+                    Text(
+                      mood.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                height: 1.08,
+                                letterSpacing: -.25,
+                              ),
+                    ),
+
                     const SizedBox(height: 7),
+
                     Text(
                       mood.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(.78),
-                        height: 1.3,
+                      style:
+                          Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withValues(alpha: .78),
+                                height: 1.3,
+                              ),
+                    ),
+
+                    const SizedBox(height: 13),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _primary.withValues(alpha: .88),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Explore',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -817,242 +534,279 @@ class _MoodCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MoodTourSection extends StatelessWidget {
-  const _MoodTourSection({required this.mood, required this.tours});
-
-  final SafariMood mood;
-  final List<OperatorTour> tours;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const AppSectionHeader(
-          title: 'Tours for This Mood',
-          subtitle: 'Published by local guides and tour operators',
-        ),
-        const SizedBox(height: 14),
-        if (tours.isEmpty)
-          _MoodEmptyResult(
-            icon: Icons.route_rounded,
-            message: 'No published tour has been assigned to this mood yet.',
-          )
-        else
-          SizedBox(
-            height: 304,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              itemCount: tours.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder:
-                  (context, index) =>
-                      _MoodTourCard(tour: tours[index], mood: mood),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _MoodTourCard extends StatelessWidget {
-  const _MoodTourCard({required this.tour, required this.mood});
-
-  final OperatorTour tour;
-  final SafariMood mood;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final destination =
-        tour.destinationNames.isEmpty
-            ? 'Safari experience'
-            : tour.destinationNames.first;
-
-    return SizedBox(
-      width: 236,
-      child: Material(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(25),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _showMoodTour(context, tour, mood),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _MoodTourImage(tour: tour, mood: mood),
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Color(0x9E000000)],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 12,
-                        top: 12,
-                        child: _MoodTourBadge(
-                          icon: Icons.schedule_rounded,
-                          label:
-                              '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
-                        ),
-                      ),
-                      Positioned(
-                        right: 12,
-                        top: 12,
-                        child: AnimatedBuilder(
-                          animation: DiscoveryStore.instance,
-                          builder: (context, _) {
-                            final record = DiscoveryRecord.fromTour(tour);
-                            return AppSaveButton(
-                              saved: DiscoveryStore.instance.isSaved(record),
-                              onPressed:
-                                  () => DiscoveryStore.instance.toggleSaved(
-                                    record,
-                                  ),
-                            );
-                          },
-                        ),
-                      ),
-                      Positioned(
-                        left: 13,
-                        right: 13,
-                        bottom: 12,
-                        child: Text(
-                          destination,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tour.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Icon(
-                            tour.isGuideLed
-                                ? Icons.person_outline_rounded
-                                : Icons.business_outlined,
-                            size: 16,
-                            color: mood.primaryColor,
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(
-                              tour.operatorName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _tourPrice(tour),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: mood.primaryColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MoodTourImage extends StatelessWidget {
-  const _MoodTourImage({required this.tour, required this.mood});
-
-  final OperatorTour tour;
-  final SafariMood mood;
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Container(
+  Widget _fallback(
+    _ExperienceVisual visual,
+  ) {
+    return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [mood.primaryColor, mood.secondaryColor],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: visual.colors,
         ),
       ),
-      child: const Center(
-        child: Icon(Icons.route_rounded, color: Colors.white, size: 48),
-      ),
-    );
-    if (tour.imageUrl.isEmpty) return fallback;
-    return Image.network(
-      tour.imageUrl,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => fallback,
     );
   }
 }
 
-class _MoodTourBadge extends StatelessWidget {
-  const _MoodTourBadge({required this.icon, required this.label});
+// ============================================================================
+// EXPERIENCE EMPTY STATE
+// ============================================================================
 
-  final IconData icon;
-  final String label;
-
+class _ExperienceEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(.48),
-        borderRadius: BorderRadius.circular(999),
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: const Text(
+        'Experiences are being prepared. Explore the destinations below.',
+      ),
+    );
+  }
+}
+
+
+class _AllActivitiesPage extends StatefulWidget {
+  const _AllActivitiesPage({required this.activities});
+
+  final List<CatalogItem> activities;
+
+  @override
+  State<_AllActivitiesPage> createState() => _AllActivitiesPageState();
+}
+
+class _AllActivitiesPageState extends State<_AllActivitiesPage> {
+  static const _primary = Color(0xFF165B5D);
+  static const _background = Color(0xFFF4EEE1);
+
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CatalogItem> get _items {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.activities;
+
+    return widget.activities.where((item) {
+      final haystack = <String>[
+        item.name,
+        item.tagline ?? '',
+        item.description,
+        item.location ?? '',
+        item.country ?? '',
+        item.difficulty ?? '',
+        item.bestMonthsToVisit ?? '',
+        item.recommendedTripLength ?? '',
+        ...item.moods,
+      ].join(' ').toLowerCase();
+
+      return haystack.contains(q);
+    }).toList();
+  }
+
+  Future<void> _open(BuildContext context, CatalogItem item) async {
+    final record = DiscoveryRecord.fromCatalog(item);
+    await DiscoveryStore.instance.recordView(record);
+
+    try {
+      final detail = await CatalogService.instance.fetchActivity(item.slug);
+      if (!context.mounted) return;
+
+      Navigator.push<void>(
+        context,
+        premiumPageRoute(
+          (_) => ActivityDetailsPage(item: detail),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This activity could not be loaded. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final items = _items;
+
+    return Scaffold(
+      backgroundColor: _background,
+      appBar: AppBar(
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'All Activities',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: Column(
         children: [
-          Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+            child: Container(
+              height: 54,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: _primary.withValues(alpha: .10)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => setState(() => _query = value),
+                decoration: InputDecoration(
+                  hintText: 'Search safari activities',
+                  border: InputBorder.none,
+                  prefixIcon: const Icon(Icons.search_rounded, color: _primary),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                ),
+              ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${items.length} ${items.length == 1 ? 'activity' : 'activities'}',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: _primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: items.isEmpty
+                ? const Center(child: Text('No matching activities found.'))
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 30),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        clipBehavior: Clip.antiAlias,
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: .09),
+                        child: InkWell(
+                          onTap: () => _open(context, item),
+                          child: SizedBox(
+                            height: 142,
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 126,
+                                  height: double.infinity,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(9),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: item.imageUrl.isEmpty
+                                          ? Container(
+                                              color: _primary.withValues(alpha: .08),
+                                              child: const Icon(
+                                                Icons.hiking_rounded,
+                                                color: _primary,
+                                              ),
+                                            )
+                                          : Image.network(
+                                              item.imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Container(
+                                                color: _primary.withValues(alpha: .08),
+                                                child: const Icon(
+                                                  Icons.hiking_rounded,
+                                                  color: _primary,
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(12, 13, 8, 12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.name,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            height: 1.12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        if ((item.tagline ?? '').trim().isNotEmpty)
+                                          Text(
+                                            item.tagline!.trim(),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                              height: 1.25,
+                                            ),
+                                          ),
+                                        const Spacer(),
+                                        Row(
+                                          children: [
+                                            if ((item.difficulty ?? '').trim().isNotEmpty)
+                                              Text(
+                                                item.difficulty!.trim(),
+                                                style: theme.textTheme.labelSmall?.copyWith(
+                                                  color: _primary,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            const Spacer(),
+                                            const Icon(
+                                              Icons.chevron_right_rounded,
+                                              color: _primary,
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -1060,372 +814,927 @@ class _MoodTourBadge extends StatelessWidget {
   }
 }
 
-class _MoodSectionDivider extends StatelessWidget {
-  const _MoodSectionDivider();
+// ============================================================================
+// ACTIVITY CARD
+// UNCHANGED
+// ============================================================================
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({
+    required this.item,
+  });
+
+  final CatalogItem item;
+
+  static const Color _primary = Color(0xFF165B5D);
+  static const Color _secondary = Color(0xFFF46627);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 28),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: Theme.of(context).colorScheme.outlineVariant,
-      ),
-    );
-  }
-}
+    final record = DiscoveryRecord.fromCatalog(item);
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
-class _MoodEmptyResult extends StatelessWidget {
-  const _MoodEmptyResult({required this.icon, required this.message});
+    final cardWidth =
+        (screenWidth * .39).clamp(142.0, 172.0).toDouble();
 
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return IllustratedEmptyState(
-      title: 'The next trail is being prepared',
-      message: message,
-      icon: icon,
-    );
-  }
-}
-
-String _tourPrice(OperatorTour tour) {
-  final amount =
-      tour.price == tour.price.roundToDouble()
-          ? tour.price.toStringAsFixed(0)
-          : tour.price.toStringAsFixed(2);
-  return '${tour.currency.isEmpty ? 'USD' : tour.currency} $amount';
-}
-
-Future<void> _showMoodTour(
-  BuildContext context,
-  OperatorTour tour,
-  SafariMood mood,
-) async {
-  await DiscoveryStore.instance.recordView(DiscoveryRecord.fromTour(tour));
-  if (!context.mounted) return;
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    builder: (_) => _MoodTourDetails(tour: tour, mood: mood),
-  );
-}
-
-class _MoodTourDetails extends StatelessWidget {
-  const _MoodTourDetails({required this.tour, required this.mood});
-
-  final OperatorTour tour;
-  final SafariMood mood;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: .86,
-      minChildSize: .56,
-      maxChildSize: .96,
-      builder:
-          (context, controller) => ListView(
-            controller: controller,
-            padding: EdgeInsets.zero,
+    return SizedBox(
+      width: cardWidth,
+      child: Material(
+        elevation: 6,
+        shadowColor: Colors.black.withValues(alpha: .13),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openActivity(
+            context,
+            record,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              SizedBox(
-                height: 270,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _MoodTourImage(tour: tour, mood: mood),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Color(0xC7000000)],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Material(
-                        color: Colors.black.withOpacity(.42),
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: Colors.white,
+              Hero(
+                tag: catalogHeroTag(
+                  item.type,
+                  item.id,
+                ),
+                child: item.imageUrl.isEmpty
+                    ? Container(
+                        color: _primary.withValues(alpha: .12),
+                        child: const Center(
+                          child: Icon(
+                            Icons.hiking_rounded,
+                            color: _primary,
+                            size: 42,
                           ),
                         ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            mood.title.toTitleCase(),
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(.78),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 14,
-                              letterSpacing: 1.1,
+                      )
+                    : Image.network(
+                        item.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return Container(
+                            color: _primary.withValues(alpha: .12),
+                            child: const Center(
+                              child: Icon(
+                                Icons.hiking_rounded,
+                                color: _primary,
+                                size: 42,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            tour.name,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
+              ),
+
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x05000000),
+                      Color(0x20000000),
+                      Color(0xD9000000),
+                    ],
+                    stops: [
+                      0,
+                      .48,
+                      1,
+                    ],
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+
+              Positioned(
+                right: 9,
+                top: 9,
+                child: AnimatedBuilder(
+                  animation: DiscoveryStore.instance,
+                  builder: (context, _) {
+                    return _ActivitySaveButton(
+                      saved: DiscoveryStore.instance.isSaved(record),
+                      onPressed: () {
+                        DiscoveryStore.instance.toggleSaved(record);
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              Positioned(
+                left: 13,
+                right: 13,
+                bottom: 14,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Chip(
-                          avatar: const Icon(Icons.schedule_rounded, size: 17),
-                          label: Text(
-                            '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
-                          ),
-                        ),
-                        Chip(
-                          avatar: Icon(
-                            tour.isGuideLed
-                                ? Icons.person_outline_rounded
-                                : Icons.business_outlined,
-                            size: 17,
-                          ),
-                          label: Text(tour.operatorName),
-                        ),
-                      ],
+                    Container(
+                      width: 24,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: _secondary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
-                    const SizedBox(height: 15),
+
+                    const SizedBox(height: 8),
+
                     Text(
-                      _tourPrice(tour),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: mood.primaryColor,
-                        fontWeight: FontWeight.w700,
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1.08,
+                        letterSpacing: -.25,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      tour.overview,
-                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.55),
-                    ),
-                    if (tour.destinationNames.isNotEmpty) ...[
-                      const SizedBox(height: 18),
-                      Text(
-                        'Destinations',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Text(tour.destinationNames.join(' • ')),
-                    ],
-                    if (tour.itinerary.isNotEmpty) ...[
-                      const SizedBox(height: 28),
-                      SafariTrail(
-                        stops: tour.itinerary,
-                        accent: mood.primaryColor,
-                      ),
-                    ],
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
     );
+  }
+
+  Future<void> _openActivity(
+    BuildContext context,
+    DiscoveryRecord record,
+  ) async {
+    await DiscoveryStore.instance.recordView(record);
+
+    try {
+      final detail =
+          await CatalogService.instance.fetchActivity(item.slug);
+
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.push(
+        context,
+        premiumPageRoute(
+          (_) => ActivityDetailsPage(
+            item: detail,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This activity could not be loaded. Please try again.',
+          ),
+        ),
+      );
+    }
   }
 }
 
-class _CatalogSection extends StatelessWidget {
-  const _CatalogSection({
-    required this.title,
-    required this.subtitle,
-    required this.emptyText,
-    required this.items,
+// ============================================================================
+// ACTIVITY SAVE BUTTON
+// ============================================================================
+
+class _ActivitySaveButton extends StatelessWidget {
+  const _ActivitySaveButton({
+    required this.saved,
+    required this.onPressed,
   });
 
-  final String title;
-  final String subtitle;
-  final String emptyText;
-  final List<CatalogItem> items;
+  final bool saved;
+  final VoidCallback onPressed;
+
+  static const Color _secondary = Color(0xFFF46627);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppSectionHeader(title: title, subtitle: subtitle),
-        const SizedBox(height: 14),
-        if (items.isEmpty)
-          _MoodEmptyResult(icon: Icons.search_off_rounded, message: emptyText)
-        else
-          SizedBox(
-            height: 240,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 14),
-              itemBuilder: (context, index) => _CatalogCard(item: items[index]),
-            ),
+    return Material(
+      color: Colors.white.withValues(alpha: .93),
+      shape: const CircleBorder(),
+      elevation: 2,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Icon(
+            saved
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            color: saved
+                ? _secondary
+                : const Color(0xFF263532),
+            size: 21,
           ),
-      ],
+        ),
+      ),
     );
   }
 }
 
-class _CatalogCard extends StatelessWidget {
-  const _CatalogCard({required this.item});
 
-  final CatalogItem item;
+class _AllDestinationsPage extends StatefulWidget {
+  const _AllDestinationsPage({
+    required this.destinations,
+    required this.activities,
+  });
+
+  final List<CatalogItem> destinations;
+  final List<CatalogItem> activities;
+
+  @override
+  State<_AllDestinationsPage> createState() =>
+      _AllDestinationsPageState();
+}
+
+class _AllDestinationsPageState extends State<_AllDestinationsPage> {
+  static const Color _primary = Color(0xFF165B5D);
+  static const Color _secondary = Color(0xFFF46627);
+  static const Color _background = Color(0xFFF4EEE1);
+
+  final TextEditingController _searchController = TextEditingController();
+
+  String _query = '';
+  String _country = 'All';
+  int? _activityId;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _countries {
+    final values = widget.destinations
+        .map((item) => item.country?.trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+
+    return ['All', ...values];
+  }
+
+  bool _matchesActivity(CatalogItem destination) {
+    if (_activityId == null) return true;
+
+    if (destination.activities.any((item) => item.id == _activityId)) {
+      return true;
+    }
+
+    for (final activity in widget.activities) {
+      if (activity.id == _activityId &&
+          activity.destinationIds.contains(destination.id)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  List<CatalogItem> get _filteredDestinations {
+    final query = _query.trim().toLowerCase();
+
+    return widget.destinations.where((item) {
+      if (_country != 'All' &&
+          (item.country ?? '').trim().toLowerCase() !=
+              _country.toLowerCase()) {
+        return false;
+      }
+
+      if (!_matchesActivity(item)) {
+        return false;
+      }
+
+      if (query.isEmpty) return true;
+
+      final activityNames = item.activities.map((activity) => activity.name);
+
+      final searchable = <String>[
+        item.name,
+        item.tagline ?? '',
+        item.description,
+        item.location ?? '',
+        item.country ?? '',
+        item.bestMonthsToVisit ?? '',
+        item.recommendedTripLength ?? '',
+        item.weatherSummary ?? '',
+        item.difficulty ?? '',
+        ...item.moods,
+        ...activityNames,
+      ].join(' ').toLowerCase();
+
+      return searchable.contains(query);
+    }).toList();
+  }
+
+  void _resetFilters() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _country = 'All';
+      _activityId = null;
+    });
+  }
+
+  Future<void> _openDestination(
+    BuildContext context,
+    CatalogItem item,
+  ) async {
+    final record = DiscoveryRecord.fromCatalog(item);
+    await DiscoveryStore.instance.recordView(record);
+
+    try {
+      final detail =
+          await CatalogService.instance.fetchDestination(item.slug);
+
+      if (!context.mounted) return;
+
+      Navigator.push<void>(
+        context,
+        premiumPageRoute(
+          (_) => DestinationDetailsPage(item: detail),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This destination could not be loaded. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final destinations = _filteredDestinations;
+    final hasFilters =
+        _query.isNotEmpty || _country != 'All' || _activityId != null;
+
+    return Scaffold(
+      backgroundColor: _background,
+      appBar: AppBar(
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'All Destinations',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+              child: Column(
+                children: [
+                  Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: _primary.withValues(alpha: .10),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .05),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() => _query = value);
+                      },
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Search destination, activity, country or experience',
+                        border: InputBorder.none,
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: _primary,
+                        ),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _query = '');
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // COUNTRY FILTER
+                  SizedBox(
+                    height: 39,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _countries.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: 7),
+                      itemBuilder: (context, index) {
+                        final country = _countries[index];
+                        final selected = _country == country;
+
+                        return ChoiceChip(
+                          label: Text(country),
+                          selected: selected,
+                          onSelected: (_) {
+                            setState(() => _country = country);
+                          },
+                          selectedColor: _primary,
+                          backgroundColor: Colors.white,
+                          side: BorderSide(
+                            color: selected
+                                ? _primary
+                                : _primary.withValues(alpha: .10),
+                          ),
+                          shape: const StadiumBorder(),
+                          labelStyle: TextStyle(
+                            color: selected
+                                ? Colors.white
+                                : const Color(0xFF394541),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  if (widget.activities.isNotEmpty) ...[
+                    const SizedBox(height: 9),
+
+                    // ACTIVITY FILTER
+                    SizedBox(
+                      height: 39,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: widget.activities.length + 1,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 7),
+                        itemBuilder: (context, index) {
+                          final isAll = index == 0;
+                          final activity =
+                              isAll ? null : widget.activities[index - 1];
+                          final selected = isAll
+                              ? _activityId == null
+                              : _activityId == activity!.id;
+
+                          return ChoiceChip(
+                            label: Text(
+                              isAll ? 'All Activities' : activity!.name,
+                            ),
+                            selected: selected,
+                            onSelected: (_) {
+                              setState(() {
+                                _activityId =
+                                    isAll ? null : activity!.id;
+                              });
+                            },
+                            selectedColor:
+                                _secondary.withValues(alpha: .14),
+                            backgroundColor: Colors.white,
+                            side: BorderSide(
+                              color: selected
+                                  ? _secondary.withValues(alpha: .28)
+                                  : _primary.withValues(alpha: .08),
+                            ),
+                            shape: const StadiumBorder(),
+                            labelStyle: TextStyle(
+                              color: selected
+                                  ? _secondary
+                                  : const Color(0xFF394541),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 2, 20, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${destinations.length} '
+                      '${destinations.length == 1 ? 'destination' : 'destinations'}',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: _primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  if (hasFilters)
+                    TextButton(
+                      onPressed: _resetFilters,
+                      child: const Text(
+                        'Reset filters',
+                        style: TextStyle(
+                          color: _secondary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            Expanded(
+              child: destinations.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.travel_explore_rounded,
+                              color: _primary,
+                              size: 44,
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              'No matching destinations',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 17,
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              'Try another activity, country or search.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                        18,
+                        0,
+                        18,
+                        30,
+                      ),
+                      itemCount: destinations.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = destinations[index];
+
+                        return Material(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          clipBehavior: Clip.antiAlias,
+                          elevation: 4,
+                          shadowColor:
+                              Colors.black.withValues(alpha: .09),
+                          child: InkWell(
+                            onTap: () =>
+                                _openDestination(context, item),
+                            child: SizedBox(
+                              height: 142,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 126,
+                                    height: double.infinity,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(9),
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(16),
+                                        child: item.imageUrl.isEmpty
+                                            ? Container(
+                                                color: _primary
+                                                    .withValues(alpha: .08),
+                                                child: const Icon(
+                                                  Icons.landscape_rounded,
+                                                  color: _primary,
+                                                ),
+                                              )
+                                            : Image.network(
+                                                item.imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (_, __, ___) =>
+                                                        Container(
+                                                  color: _primary
+                                                      .withValues(alpha: .08),
+                                                  child: const Icon(
+                                                    Icons.landscape_rounded,
+                                                    color: _primary,
+                                                  ),
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding:
+                                          const EdgeInsets.fromLTRB(
+                                        12,
+                                        13,
+                                        8,
+                                        12,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.name,
+                                            maxLines: 2,
+                                            overflow:
+                                                TextOverflow.ellipsis,
+                                            style: theme
+                                                .textTheme.titleMedium
+                                                ?.copyWith(
+                                              fontWeight:
+                                                  FontWeight.w900,
+                                              height: 1.12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            <String>[
+                                              if ((item.location ?? '')
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                item.location!.trim(),
+                                              if ((item.country ?? '')
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                item.country!.trim(),
+                                            ].join(', '),
+                                            maxLines: 1,
+                                            overflow:
+                                                TextOverflow.ellipsis,
+                                            style: theme
+                                                .textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: theme.colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          if (item.activities.isNotEmpty)
+                                            Text(
+                                              item.activities
+                                                  .take(2)
+                                                  .map(
+                                                    (activity) =>
+                                                        activity.name,
+                                                  )
+                                                  .join(' • '),
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis,
+                                              style: theme
+                                                  .textTheme.labelSmall
+                                                  ?.copyWith(
+                                                color: _primary,
+                                                fontWeight:
+                                                    FontWeight.w800,
+                                              ),
+                                            )
+                                          else if ((item.tagline ?? '')
+                                              .trim()
+                                              .isNotEmpty)
+                                            Text(
+                                              item.tagline!.trim(),
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis,
+                                              style: theme
+                                                  .textTheme.bodySmall,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const Padding(
+                                    padding:
+                                        EdgeInsets.only(right: 10),
+                                    child: Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: _primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// DESTINATION CARD
+// NEW CLEANER DESIGN
+// ============================================================================
+
+class _DestinationCard extends StatelessWidget {
+  const _DestinationCard({
+    required this.item,
+  });
+
+  final CatalogItem item;
+
+  static const Color _primary = Color(0xFF165B5D);
+  static const Color _secondary = Color(0xFFF46627);
+
+  @override
+  Widget build(BuildContext context) {
     final record = DiscoveryRecord.fromCatalog(item);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    final cardWidth =
+        (screenWidth * .50).clamp(178.0, 205.0).toDouble();
+
+    final theme = Theme.of(context);
+
     return SizedBox(
-      width:
-          (MediaQuery.sizeOf(context).width * .56).clamp(184, 220).toDouble(),
+      width: cardWidth,
       child: Material(
+        elevation: 5,
+        shadowColor: Colors.black.withValues(alpha: .10),
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(23),
+        borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () async {
-            await DiscoveryStore.instance.recordView(record);
-
-            try {
-              final detail =
-                  item.isActivity
-                      ? await CatalogService.instance.fetchActivity(item.slug)
-                      : await CatalogService.instance.fetchDestination(
-                        item.slug,
-                      );
-
-              if (!context.mounted) return;
-
-              Navigator.push(
-                context,
-                premiumPageRoute((_) => CatalogDetailPage(item: detail)),
-              );
-            } catch (_) {
-              if (!context.mounted) return;
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'This safari page could not be loaded. Please try again.',
-                  ),
-                ),
-              );
-            }
-          },
+          onTap: () => _openDestination(
+            context,
+            record,
+          ),
           child: Container(
             decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(23),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --------------------------------------------------------
+                // DESTINATION IMAGE
+                // --------------------------------------------------------
+
                 Expanded(
+                  flex: 6,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
                       Hero(
-                        tag: catalogHeroTag(item.type, item.id),
-                        child:
-                            item.imageUrl.isEmpty
-                                ? Container(
-                                  width: double.infinity,
-                                  color: theme.colorScheme.primaryContainer,
+                        tag: catalogHeroTag(
+                          item.type,
+                          item.id,
+                        ),
+                        child: item.imageUrl.isEmpty
+                            ? Container(
+                                color: _primary.withValues(alpha: .10),
+                                child: const Center(
                                   child: Icon(
-                                    item.isActivity
-                                        ? Icons.hiking_rounded
-                                        : Icons.landscape_rounded,
-                                    size: 48,
-                                  ),
-                                )
-                                : ColorFiltered(
-                                  colorFilter: const ColorFilter.mode(
-                                    Color(0x183E6B52),
-                                    BlendMode.softLight,
-                                  ),
-                                  child: Image.network(
-                                    item.imageUrl,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (_, __, ___) => Container(
-                                          color:
-                                              theme
-                                                  .colorScheme
-                                                  .primaryContainer,
-                                        ),
+                                    Icons.landscape_rounded,
+                                    color: _primary,
+                                    size: 42,
                                   ),
                                 ),
+                              )
+                            : Image.network(
+                                item.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) {
+                                  return Container(
+                                    color:
+                                        _primary.withValues(alpha: .10),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.landscape_rounded,
+                                        color: _primary,
+                                        size: 42,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                       ),
+
                       Positioned(
-                        right: 10,
                         top: 10,
+                        right: 10,
                         child: AnimatedBuilder(
                           animation: DiscoveryStore.instance,
-                          builder:
-                              (context, _) => AppSaveButton(
-                                saved: DiscoveryStore.instance.isSaved(record),
-                                onPressed:
-                                    () => DiscoveryStore.instance.toggleSaved(
-                                      record,
-                                    ),
-                              ),
+                          builder: (context, _) {
+                            return _DestinationSaveButton(
+                              saved:
+                                  DiscoveryStore.instance.isSaved(record),
+                              onPressed: () {
+                                DiscoveryStore.instance
+                                    .toggleSaved(record);
+                              },
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(13),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.tagline ?? item.location ?? '',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
+
+                // --------------------------------------------------------
+                // DESTINATION INFORMATION
+                // --------------------------------------------------------
+
+                Expanded(
+                  flex: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      13,
+                      11,
+                      13,
+                      12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 23,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: _secondary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+
+                        const SizedBox(height: 7),
+
+                        Text(
+                          item.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            height: 1.1,
+                            letterSpacing: -.15,
+                          ),
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        Expanded(
+                          child: Text(
+                            item.tagline ??
+                                item.location ??
+                                '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              height: 1.28,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1435,14 +1744,156 @@ class _CatalogCard extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _openDestination(
+    BuildContext context,
+    DiscoveryRecord record,
+  ) async {
+    await DiscoveryStore.instance.recordView(record);
+
+    try {
+      final detail =
+          await CatalogService.instance.fetchDestination(item.slug);
+
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.push(
+        context,
+        premiumPageRoute(
+          (_) => DestinationDetailsPage(
+            item: detail,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This destination could not be loaded. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
 }
 
-class _MoodVisual {
-  const _MoodVisual(this.icon, this.colors);
+// ============================================================================
+// DESTINATION SAVE BUTTON
+// ============================================================================
+
+class _DestinationSaveButton extends StatelessWidget {
+  const _DestinationSaveButton({
+    required this.saved,
+    required this.onPressed,
+  });
+
+  final bool saved;
+  final VoidCallback onPressed;
+
+  static const Color _secondary = Color(0xFFF46627);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: .94),
+      elevation: 2,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Icon(
+            saved
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            color: saved
+                ? _secondary
+                : const Color(0xFF263532),
+            size: 21,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// EMPTY RESULT
+// ============================================================================
+
+class _CatalogEmptyResult extends StatelessWidget {
+  const _CatalogEmptyResult({
+    required this.icon,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest
+            .withValues(alpha: .48),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: theme.colorScheme.primary,
+            size: 32,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// EXPERIENCE VISUAL
+// ============================================================================
+
+class _ExperienceVisual {
+  const _ExperienceVisual(
+    this.icon,
+    this.colors,
+  );
 
   final IconData icon;
   final List<Color> colors;
 
-  factory _MoodVisual.fromMood(SafariMood mood) =>
-      _MoodVisual(mood.icon, [mood.primaryColor, mood.secondaryColor]);
+  factory _ExperienceVisual.fromMood(
+    SafariMood mood,
+  ) {
+    return _ExperienceVisual(
+      mood.icon,
+      [
+        mood.primaryColor,
+        mood.secondaryColor,
+      ],
+    );
+  }
 }

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme/field_guide_theme.dart';
 
 Future<void> showGuestAccessSheet(
-    BuildContext context, {
-      String title = 'Unlock the full experience',
-      String message =
+  BuildContext context, {
+  String title = 'Unlock the full experience',
+  String message =
       'Login or create a free account to view full profiles, contact guides and tour operators, save tours and make bookings.',
-    }) {
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -15,47 +15,31 @@ Future<void> showGuestAccessSheet(
     barrierColor: Colors.black.withOpacity(.52),
 
     builder: (sheetContext) {
-      return _GuestAccessSheet(
-        title: title,
-        message: message,
-      );
+      return _GuestAccessSheet(title: title, message: message);
     },
   );
 }
 
 class _GuestAccessSheet extends StatelessWidget {
-  const _GuestAccessSheet({
-    required this.title,
-    required this.message,
-  });
+  const _GuestAccessSheet({required this.title, required this.message});
 
   final String title;
   final String message;
 
-  static const Color _primary =
-      FieldGuidePalette.primary;
+  static const Color _primary = FieldGuidePalette.primary;
 
-  static const Color _secondary =
-      FieldGuidePalette.secondary;
+  static const Color _secondary = FieldGuidePalette.secondary;
 
-  static const Color _background =
-      FieldGuidePalette.background;
+  static const Color _background = FieldGuidePalette.background;
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.only(
-          top: 80,
-        ),
+        margin: const EdgeInsets.only(top: 80),
 
-        padding: const EdgeInsets.fromLTRB(
-          24,
-          12,
-          24,
-          26,
-        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 26),
 
         decoration: const BoxDecoration(
           color: _background,
@@ -74,14 +58,9 @@ class _GuestAccessSheet extends StatelessWidget {
               height: 4,
 
               decoration: BoxDecoration(
-                color: const Color(
-                  0xFFD1CBC2,
-                ),
+                color: const Color(0xFFD1CBC2),
 
-                borderRadius:
-                BorderRadius.circular(
-                  20,
-                ),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
 
@@ -92,18 +71,11 @@ class _GuestAccessSheet extends StatelessWidget {
               height: 58,
 
               decoration: BoxDecoration(
-                color: _primary.withOpacity(
-                  .08,
-                ),
+                color: _primary.withOpacity(.08),
 
                 shape: BoxShape.circle,
 
-                border: Border.all(
-                  color:
-                  _secondary.withOpacity(
-                    .45,
-                  ),
-                ),
+                border: Border.all(color: _secondary.withOpacity(.45)),
               ),
 
               child: const Icon(
@@ -120,13 +92,11 @@ class _GuestAccessSheet extends StatelessWidget {
               textAlign: TextAlign.center,
 
               style: const TextStyle(
-                color:
-                FieldGuidePalette.ink,
+                color: FieldGuidePalette.ink,
 
                 fontSize: 22,
 
-                fontWeight:
-                FontWeight.w800,
+                fontWeight: FontWeight.w800,
 
                 letterSpacing: -.5,
               ),
@@ -139,9 +109,7 @@ class _GuestAccessSheet extends StatelessWidget {
               textAlign: TextAlign.center,
 
               style: const TextStyle(
-                color:
-                FieldGuidePalette
-                    .mutedText,
+                color: FieldGuidePalette.mutedText,
 
                 fontSize: 13,
 
@@ -157,10 +125,7 @@ class _GuestAccessSheet extends StatelessWidget {
               onPressed: () {
                 Navigator.pop(context);
 
-                Navigator.pushNamed(
-                  context,
-                  '/login',
-                );
+                Navigator.pushNamed(context, '/login');
               },
             ),
 
@@ -171,43 +136,26 @@ class _GuestAccessSheet extends StatelessWidget {
               height: 50,
 
               child: OutlinedButton(
-                style:
-                OutlinedButton.styleFrom(
-                  foregroundColor:
-                  _primary,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _primary,
 
-                  side: const BorderSide(
-                    color: _primary,
-                    width: 1.2,
-                  ),
+                  side: const BorderSide(color: _primary, width: 1.2),
 
-                  shape:
-                  RoundedRectangleBorder(
-                    borderRadius:
-                    BorderRadius.circular(
-                      100,
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 ),
 
                 onPressed: () {
                   Navigator.pop(context);
 
-                  Navigator.pushNamed(
-                    context,
-                    '/register',
-                  );
+                  Navigator.pushNamed(context, '/register');
                 },
 
                 child: const Text(
                   'Create Account',
 
-                  style: TextStyle(
-                    fontSize: 14,
-
-                    fontWeight:
-                    FontWeight.w800,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
                 ),
               ),
             ),
@@ -223,14 +171,11 @@ class _GuestAccessSheet extends StatelessWidget {
                 'Continue browsing',
 
                 style: TextStyle(
-                  color:
-                  FieldGuidePalette
-                      .mutedText,
+                  color: FieldGuidePalette.mutedText,
 
                   fontSize: 13,
 
-                  fontWeight:
-                  FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -241,12 +186,8 @@ class _GuestAccessSheet extends StatelessWidget {
   }
 }
 
-class _PremiumActionButton
-    extends StatelessWidget {
-  const _PremiumActionButton({
-    required this.label,
-    required this.onPressed,
-  });
+class _PremiumActionButton extends StatelessWidget {
+  const _PremiumActionButton({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback onPressed;
@@ -259,39 +200,23 @@ class _PremiumActionButton
 
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient:
-          const LinearGradient(
-            begin:
-            Alignment.topCenter,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
 
-            end:
-            Alignment.bottomCenter,
+            end: Alignment.bottomCenter,
 
-            colors: [
-              Color(0xFF165B5D),
-              Color(0xFF0A3D3F),
-            ],
+            colors: [Color(0xFF165B5D), Color(0xFF0A3D3F)],
           ),
 
-          borderRadius:
-          BorderRadius.circular(
-            100,
-          ),
+          borderRadius: BorderRadius.circular(100),
 
           boxShadow: [
             BoxShadow(
-              color:
-              Colors.black.withOpacity(
-                .12,
-              ),
+              color: Colors.black.withOpacity(.12),
 
               blurRadius: 10,
 
-              offset:
-              const Offset(
-                0,
-                4,
-              ),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -299,27 +224,15 @@ class _PremiumActionButton
         child: Material(
           color: Colors.transparent,
 
-          borderRadius:
-          BorderRadius.circular(
-            100,
-          ),
+          borderRadius: BorderRadius.circular(100),
 
           child: InkWell(
             onTap: onPressed,
 
-            borderRadius:
-            BorderRadius.circular(
-              100,
-            ),
+            borderRadius: BorderRadius.circular(100),
 
             child: Padding(
-              padding:
-              const EdgeInsets.fromLTRB(
-                20,
-                5,
-                6,
-                5,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 5, 6, 5),
 
               child: Row(
                 children: [
@@ -328,15 +241,12 @@ class _PremiumActionButton
                       child: Text(
                         label,
 
-                        style:
-                        const TextStyle(
-                          color:
-                          Colors.white,
+                        style: const TextStyle(
+                          color: Colors.white,
 
                           fontSize: 14,
 
-                          fontWeight:
-                          FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -346,22 +256,16 @@ class _PremiumActionButton
                     width: 38,
                     height: 38,
 
-                    decoration:
-                    const BoxDecoration(
-                      color:
-                      Colors.white,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
 
-                      shape:
-                      BoxShape.circle,
+                      shape: BoxShape.circle,
                     ),
 
-                    child:
-                    const Icon(
-                      Icons
-                          .arrow_forward_rounded,
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
 
-                      color:
-                      Colors.black,
+                      color: Colors.black,
 
                       size: 19,
                     ),

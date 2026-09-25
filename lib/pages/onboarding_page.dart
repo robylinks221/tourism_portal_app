@@ -7,10 +7,7 @@ import '../theme/field_guide_theme.dart';
 import 'tourist_home_page.dart';
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({
-    required this.onFinished,
-    super.key,
-  });
+  const OnboardingPage({required this.onFinished, super.key});
 
   final VoidCallback onFinished;
 
@@ -34,34 +31,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   final PageController _pageController = PageController();
 
-  late final Future<List<OnboardingSlide>> _slidesFuture =
-  _loadSlides();
+  late final Future<List<OnboardingSlide>> _slidesFuture = _loadSlides();
 
   int _currentIndex = 0;
   bool _busy = false;
 
   Future<List<OnboardingSlide>> _loadSlides() async {
     try {
-      final slides =
-      await OnboardingService.instance.fetchSlides();
+      final slides = await OnboardingService.instance.fetchSlides();
 
       if (slides.isEmpty) {
         return fallbackOnboardingSlides;
       }
 
-      return List.generate(
-        slides.length,
-            (index) {
-          final fallbackIndex =
-          index < _fallbackAssets.length
-              ? index
-              : _fallbackAssets.length - 1;
+      return List.generate(slides.length, (index) {
+        final fallbackIndex =
+            index < _fallbackAssets.length ? index : _fallbackAssets.length - 1;
 
-          return slides[index].withFallback(
-            _fallbackAssets[fallbackIndex],
-          );
-        },
-      );
+        return slides[index].withFallback(_fallbackAssets[fallbackIndex]);
+      });
     } catch (_) {
       return fallbackOnboardingSlides;
     }
@@ -96,10 +84,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       _busy = false;
     });
 
-    Navigator.pushReplacementNamed(
-      context,
-      '/register',
-    );
+    Navigator.pushReplacementNamed(context, '/register');
   }
 
   Future<void> _openLogin() async {
@@ -109,10 +94,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(
-      context,
-      '/login',
-    );
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   Future<void> _continueAsGuest() async {
@@ -124,11 +106,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
-        builder: (_) => const TouristHomePage(
-          isGuest: true,
-        ),
+        builder: (_) => const TouristHomePage(isGuest: true),
       ),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -143,9 +123,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
 
     _pageController.nextPage(
-      duration: const Duration(
-        milliseconds: 420,
-      ),
+      duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
     );
   }
@@ -155,24 +133,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return FutureBuilder<List<OnboardingSlide>>(
       future: _slidesFuture,
       builder: (context, snapshot) {
-        final slides =
-            snapshot.data ?? fallbackOnboardingSlides;
+        final slides = snapshot.data ?? fallbackOnboardingSlides;
 
         if (slides.isEmpty) {
           return const Scaffold(
             backgroundColor: _background,
-            body: Center(
-              child: CircularProgressIndicator(
-                color: _primary,
-              ),
-            ),
+            body: Center(child: CircularProgressIndicator(color: _primary)),
           );
         }
 
-        final safeIndex =
-        _currentIndex < slides.length
-            ? _currentIndex
-            : 0;
+        final safeIndex = _currentIndex < slides.length ? _currentIndex : 0;
 
         return Scaffold(
           backgroundColor: _background,
@@ -194,19 +164,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         });
                       },
                       itemBuilder: (context, index) {
-                        return _SlideBackground(
-                          slide: slides[index],
-                        );
+                        return _SlideBackground(slide: slides[index]);
                       },
                     ),
 
                     // #253D49 image tint / opacity
                     IgnorePointer(
-                      child: Container(
-                        color: _imageOverlay.withOpacity(
-                          0.50,
-                        ),
-                      ),
+                      child: Container(color: _imageOverlay.withOpacity(0.50)),
                     ),
 
                     // Additional lower gradient for text readability
@@ -218,22 +182,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              _imageOverlay.withOpacity(
-                                0.06,
-                              ),
-                              _imageOverlay.withOpacity(
-                                0.30,
-                              ),
-                              _imageOverlay.withOpacity(
-                                0.83,
-                              ),
+                              _imageOverlay.withOpacity(0.06),
+                              _imageOverlay.withOpacity(0.30),
+                              _imageOverlay.withOpacity(0.83),
                             ],
-                            stops: const [
-                              0.0,
-                              0.42,
-                              0.69,
-                              1.0,
-                            ],
+                            stops: const [0.0, 0.42, 0.69, 1.0],
                           ),
                         ),
                       ),
@@ -245,12 +198,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     SafeArea(
                       bottom: false,
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          24,
-                          15,
-                          18,
-                          0,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(24, 15, 18, 0),
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: Row(
@@ -260,10 +208,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 height: 32,
                                 decoration: BoxDecoration(
                                   color: _secondary,
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                    20,
-                                  ),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
 
@@ -274,8 +219,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
-                                  fontWeight:
-                                  FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                   letterSpacing: -0.2,
                                 ),
                               ),
@@ -283,35 +227,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               const Spacer(),
 
                               TextButton(
-                                onPressed:
-                                _busy ? null : _skip,
-                                style:
-                                TextButton.styleFrom(
-                                  foregroundColor:
-                                  Colors.white,
-                                  padding:
-                                  const EdgeInsets.symmetric(
+                                onPressed: _busy ? null : _skip,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: 5,
                                   ),
                                 ),
                                 child: const Row(
-                                  mainAxisSize:
-                                  MainAxisSize.min,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       'Skip',
                                       style: TextStyle(
                                         fontSize: 14,
-                                        fontWeight:
-                                        FontWeight.w500,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     SizedBox(width: 1),
-                                    Icon(
-                                      Icons
-                                          .chevron_right_rounded,
-                                      size: 20,
-                                    ),
+                                    Icon(Icons.chevron_right_rounded, size: 20),
                                   ],
                                 ),
                               ),
@@ -329,30 +263,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       right: 27,
                       bottom: 26,
                       child: AnimatedSwitcher(
-                        duration: const Duration(
-                          milliseconds: 280,
-                        ),
-                        transitionBuilder: (
-                            child,
-                            animation,
-                            ) {
+                        duration: const Duration(milliseconds: 280),
+                        transitionBuilder: (child, animation) {
                           return FadeTransition(
                             opacity: animation,
                             child: SlideTransition(
-                              position:
-                              Tween<Offset>(
-                                begin:
-                                const Offset(
-                                  0,
-                                  0.05,
-                                ),
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.05),
                                 end: Offset.zero,
                               ).animate(
                                 CurvedAnimation(
-                                  parent:
-                                  animation,
-                                  curve:
-                                  Curves.easeOut,
+                                  parent: animation,
+                                  curve: Curves.easeOut,
                                 ),
                               ),
                               child: child,
@@ -360,15 +282,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           );
                         },
                         child: _HeroContent(
-                          key: ValueKey(
-                            safeIndex,
-                          ),
-                          slide:
-                          slides[safeIndex],
-                          slideCount:
-                          slides.length,
-                          currentIndex:
-                          safeIndex,
+                          key: ValueKey(safeIndex),
+                          slide: slides[safeIndex],
+                          slideCount: slides.length,
+                          currentIndex: safeIndex,
                         ),
                       ),
                     ),
@@ -388,18 +305,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     topRight: Radius.circular(36),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(
-                  28,
-                  20,
-                  28,
-                  8,
-                ),
+                padding: const EdgeInsets.fromLTRB(28, 20, 28, 8),
                 child: SafeArea(
                   top: false,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'Your journey starts here.',
@@ -416,8 +327,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       const Text(
                         'Let’s make your next adventure amazing.',
                         style: TextStyle(
-                          color:
-                          FieldGuidePalette.mutedText,
+                          color: FieldGuidePalette.mutedText,
                           fontSize: 12,
                           height: 1.35,
                           fontWeight: FontWeight.w400,
@@ -429,22 +339,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       _GetStartedButton(
                         busy: _busy,
                         label:
-                        safeIndex ==
-                            slides.length - 1
-                            ? 'Get Started'
-                            : 'Next',
+                            safeIndex == slides.length - 1
+                                ? 'Get Started'
+                                : 'Next',
                         onPressed: () {
-                          _nextSlide(
-                            slides.length,
-                          );
+                          _nextSlide(slides.length);
                         },
                       ),
 
                       const SizedBox(height: 6),
 
                       _BottomAction(
-                        icon:
-                        Icons.person_outline_rounded,
+                        icon: Icons.person_outline_rounded,
                         label: 'Login',
                         onTap: _openLogin,
                       ),
@@ -452,15 +358,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       Divider(
                         height: 1,
                         thickness: 1,
-                        color: FieldGuidePalette.border
-                            .withOpacity(
-                          0.72,
-                        ),
+                        color: FieldGuidePalette.border.withOpacity(0.72),
                       ),
 
                       _BottomAction(
-                        icon:
-                        Icons.public_rounded,
+                        icon: Icons.public_rounded,
                         label: 'Continue as a guest',
                         onTap: _continueAsGuest,
                       ),
@@ -496,8 +398,7 @@ class _HeroContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'DISCOVER UGANDA',
@@ -511,9 +412,7 @@ class _HeroContent extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        _PremiumTitle(
-          title: slide.title,
-        ),
+        _PremiumTitle(title: slide.title),
 
         const SizedBox(height: 10),
 
@@ -522,9 +421,7 @@ class _HeroContent extends StatelessWidget {
           height: 3,
           decoration: BoxDecoration(
             color: FieldGuidePalette.secondary,
-            borderRadius: BorderRadius.circular(
-              20,
-            ),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
 
@@ -544,10 +441,7 @@ class _HeroContent extends StatelessWidget {
 
         const SizedBox(height: 17),
 
-        _SlideIndicators(
-          count: slideCount,
-          selected: currentIndex,
-        ),
+        _SlideIndicators(count: slideCount, selected: currentIndex),
       ],
     );
   }
@@ -558,16 +452,13 @@ class _HeroContent extends StatelessWidget {
 // =====================================================================
 
 class _PremiumTitle extends StatelessWidget {
-  const _PremiumTitle({
-    required this.title,
-  });
+  const _PremiumTitle({required this.title});
 
   final String title;
 
   @override
   Widget build(BuildContext context) {
-    final normalized =
-    title.trim().toLowerCase();
+    final normalized = title.trim().toLowerCase();
 
     // Custom styling for the third/default safari slide.
     if (normalized == 'build your safari') {
@@ -585,15 +476,10 @@ class _PremiumTitle extends StatelessWidget {
               letterSpacing: -1,
             ),
             children: [
-              TextSpan(
-                text: 'Build Your ',
-              ),
+              TextSpan(text: 'Build Your '),
               TextSpan(
                 text: 'Safari',
-                style: TextStyle(
-                  color:
-                  FieldGuidePalette.secondary,
-                ),
+                style: TextStyle(color: FieldGuidePalette.secondary),
               ),
             ],
           ),
@@ -624,10 +510,7 @@ class _PremiumTitle extends StatelessWidget {
 // =====================================================================
 
 class _SlideIndicators extends StatelessWidget {
-  const _SlideIndicators({
-    required this.count,
-    required this.selected,
-  });
+  const _SlideIndicators({required this.count, required this.selected});
 
   final int count;
   final int selected;
@@ -635,35 +518,23 @@ class _SlideIndicators extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: List.generate(
-        count,
-            (index) {
-          final active =
-              index == selected;
+      children: List.generate(count, (index) {
+        final active = index == selected;
 
-          return AnimatedContainer(
-            duration: const Duration(
-              milliseconds: 220,
-            ),
-            width: active ? 16 : 8,
-            height: 8,
-            margin: const EdgeInsets.only(
-              right: 9,
-            ),
-            decoration: BoxDecoration(
-              color: active
-                  ? FieldGuidePalette.secondary
-                  : Colors.white.withOpacity(
-                .85,
-              ),
-              borderRadius:
-              BorderRadius.circular(
-                20,
-              ),
-            ),
-          );
-        },
-      ),
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: active ? 16 : 8,
+          height: 8,
+          margin: const EdgeInsets.only(right: 9),
+          decoration: BoxDecoration(
+            color:
+                active
+                    ? FieldGuidePalette.secondary
+                    : Colors.white.withOpacity(.85),
+            borderRadius: BorderRadius.circular(20),
+          ),
+        );
+      }),
     );
   }
 }
@@ -690,32 +561,16 @@ class _GetStartedButton extends StatelessWidget {
       child: Material(
         color: FieldGuidePalette.primary,
         elevation: 2,
-        shadowColor:
-        Colors.black.withOpacity(
-          0.15,
-        ),
+        shadowColor: Colors.black.withOpacity(0.15),
 
         // Fully rounded/pill ends
-        borderRadius:
-        BorderRadius.circular(
-          100,
-        ),
+        borderRadius: BorderRadius.circular(100),
 
         child: InkWell(
-          onTap:
-          busy ? null : onPressed,
-          borderRadius:
-          BorderRadius.circular(
-            100,
-          ),
+          onTap: busy ? null : onPressed,
+          borderRadius: BorderRadius.circular(100),
           child: Padding(
-            padding:
-            const EdgeInsets.fromLTRB(
-              20,
-              5,
-              6,
-              5,
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 5, 6, 5),
             child: Row(
               children: [
                 Expanded(
@@ -724,8 +579,7 @@ class _GetStartedButton extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14.5,
-                      fontWeight:
-                      FontWeight.w700,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -733,30 +587,26 @@ class _GetStartedButton extends StatelessWidget {
                 Container(
                   width: 38,
                   height: 38,
-                  decoration:
-                  const BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  alignment:
-                  Alignment.center,
-                  child: busy
-                      ? const SizedBox(
-                    width: 15,
-                    height: 15,
-                    child:
-                    CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color:
-                      Colors.black,
-                    ),
-                  )
-                      : const Icon(
-                    Icons
-                        .arrow_forward_rounded,
-                    color: Colors.black,
-                    size: 19,
-                  ),
+                  alignment: Alignment.center,
+                  child:
+                      busy
+                          ? const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          )
+                          : const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.black,
+                            size: 19,
+                          ),
                 ),
               ],
             ),
@@ -786,25 +636,14 @@ class _BottomAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius:
-      BorderRadius.circular(
-        12,
-      ),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding:
-        const EdgeInsets.symmetric(
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
             SizedBox(
               width: 34,
-              child: Icon(
-                icon,
-                color:
-                FieldGuidePalette.primary,
-                size: 20,
-              ),
+              child: Icon(icon, color: FieldGuidePalette.primary, size: 20),
             ),
 
             const SizedBox(width: 8),
@@ -813,19 +652,16 @@ class _BottomAction extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  color:
-                  FieldGuidePalette.primary,
+                  color: FieldGuidePalette.primary,
                   fontSize: 14,
-                  fontWeight:
-                  FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
 
             const Icon(
               Icons.chevron_right_rounded,
-              color:
-              FieldGuidePalette.primary,
+              color: FieldGuidePalette.primary,
               size: 21,
             ),
           ],
@@ -840,23 +676,16 @@ class _BottomAction extends StatelessWidget {
 // =====================================================================
 
 class _SlideBackground extends StatelessWidget {
-  const _SlideBackground({
-    required this.slide,
-  });
+  const _SlideBackground({required this.slide});
 
   final OnboardingSlide slide;
 
   @override
   Widget build(BuildContext context) {
     final fallback =
-        slide.assetFallback ??
-            fallbackOnboardingSlides
-                .first.assetFallback!;
+        slide.assetFallback ?? fallbackOnboardingSlides.first.assetFallback!;
 
-    final remoteUrl =
-    AuthService.storageUrl(
-      slide.image,
-    );
+    final remoteUrl = AuthService.storageUrl(slide.image);
 
     if (remoteUrl.isEmpty) {
       return Image.asset(
@@ -872,11 +701,7 @@ class _SlideBackground extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (
-          context,
-          error,
-          stackTrace,
-          ) {
+      errorBuilder: (context, error, stackTrace) {
         return Image.asset(
           fallback,
           width: double.infinity,
@@ -884,11 +709,7 @@ class _SlideBackground extends StatelessWidget {
           fit: BoxFit.cover,
         );
       },
-      loadingBuilder: (
-          context,
-          child,
-          loadingProgress,
-          ) {
+      loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) {
           return child;
         }
@@ -896,17 +717,8 @@ class _SlideBackground extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              fallback,
-              fit: BoxFit.cover,
-            ),
-            Container(
-              color: const Color(
-                0xFF253D49,
-              ).withOpacity(
-                0.18,
-              ),
-            ),
+            Image.asset(fallback, fit: BoxFit.cover),
+            Container(color: const Color(0xFF253D49).withOpacity(0.18)),
           ],
         );
       },

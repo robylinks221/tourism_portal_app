@@ -12,7 +12,9 @@ import '../theme/app_design_system.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/premium_navigation.dart';
 import '../widgets/provider_discovery_sections.dart';
-import 'catalog_detail_page.dart';
+import 'activity_details_page.dart';
+import 'destination_details_page.dart';
+import 'tour_details_page.dart';
 
 class DiscoveryPage extends StatefulWidget {
   const DiscoveryPage({
@@ -56,11 +58,10 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   Future<_DiscoveryData> _load() async {
     final catalogFuture = CatalogService.instance.fetchCatalog();
     final offeringsFuture = OperatorOfferingsService.instance.fetch();
-    final providersFuture = widget.isGuest
-        ? Future.value(
-            const FeaturedProviders(guides: [], operators: []),
-          )
-        : CommunityService.instance.fetchFeaturedProviders();
+    final providersFuture =
+        widget.isGuest
+            ? Future.value(const FeaturedProviders(guides: [], operators: []))
+            : CommunityService.instance.fetchFeaturedProviders();
     return _DiscoveryData(
       catalog: await catalogFuture,
       offerings: await offeringsFuture,
@@ -70,7 +71,8 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
 
   void _retry() => setState(() => _data = _load());
 
-  int get _activeFilterCount => [
+  int get _activeFilterCount =>
+      [
         _kind != null,
         _location != null,
         _activity != null,
@@ -94,36 +96,37 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   List<_DiscoveryCandidate> _filtered(_DiscoveryData data) {
     final query = _search.text.trim().toLowerCase();
     return data.candidates.where((candidate) {
-      final record = candidate.record;
-      final searchable = [
-        record.title,
-        record.subtitle,
-        record.location,
-        record.kindLabel,
-        ...record.activities,
-      ].join(' ').toLowerCase();
-      if (query.isNotEmpty && !searchable.contains(query)) return false;
-      if (_kind != null && record.kind != _kind) return false;
-      if (_location != null &&
-          !record.location.toLowerCase().contains(_location!.toLowerCase())) {
-        return false;
-      }
-      if (_activity != null &&
-          !record.activities.any(
-            (value) => value.toLowerCase() == _activity!.toLowerCase(),
-          )) {
-        return false;
-      }
-      if (_minimumRating > 0 && record.rating < _minimumRating) return false;
-      if (_priceEnabled &&
-          (record.price == null ||
-              record.price! < _price.start ||
-              record.price! > _price.end)) {
-        return false;
-      }
-      if (_availableOnly && !record.available) return false;
-      return true;
-    }).toList()
+        final record = candidate.record;
+        final searchable =
+            [
+              record.title,
+              record.subtitle,
+              record.location,
+              record.kindLabel,
+              ...record.activities,
+            ].join(' ').toLowerCase();
+        if (query.isNotEmpty && !searchable.contains(query)) return false;
+        if (_kind != null && record.kind != _kind) return false;
+        if (_location != null &&
+            !record.location.toLowerCase().contains(_location!.toLowerCase())) {
+          return false;
+        }
+        if (_activity != null &&
+            !record.activities.any(
+              (value) => value.toLowerCase() == _activity!.toLowerCase(),
+            )) {
+          return false;
+        }
+        if (_minimumRating > 0 && record.rating < _minimumRating) return false;
+        if (_priceEnabled &&
+            (record.price == null ||
+                record.price! < _price.start ||
+                record.price! > _price.end)) {
+          return false;
+        }
+        if (_availableOnly && !record.available) return false;
+        return true;
+      }).toList()
       ..sort((first, second) {
         final rating = second.record.rating.compareTo(first.record.rating);
         return rating == 0
@@ -178,12 +181,14 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                   const SizedBox(height: AppSpacing.md),
                 ],
                 AppStatePanel(
-                  title: offline
-                      ? 'Discovery is offline'
-                      : 'Discovery could not be loaded',
-                  message: offline
-                      ? 'Reconnect to load guides, operators, tours and destinations.'
-                      : 'Something interrupted discovery. Your saved items are still safe.',
+                  title:
+                      offline
+                          ? 'Discovery is offline'
+                          : 'Discovery could not be loaded',
+                  message:
+                      offline
+                          ? 'Reconnect to load guides, operators, tours and destinations.'
+                          : 'Something interrupted discovery. Your saved items are still safe.',
                   kind: offline ? AppStateKind.offline : AppStateKind.error,
                   onRetry: _retry,
                 ),
@@ -195,114 +200,122 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
           final visible = _filtered(data);
           return AnimatedBuilder(
             animation: DiscoveryStore.instance,
-            builder: (context, _) => ListView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
-              children: [
-                const AppSectionHeader(
-                  title: 'Explore Uganda',
-                  subtitle:
-                      'Search guides, operators, tours, destinations and activities.',
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _DiscoverySearchField(
-                  controller: _search,
-                  filterCount: _activeFilterCount,
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _FilterBar(
-                  kind: _kind,
-                  location: _location,
-                  activity: _activity,
-                  minimumRating: _minimumRating,
-                  priceEnabled: _priceEnabled,
-                  price: _price,
-                  availableOnly: _availableOnly,
-                  onKind: () => _chooseKind(),
-                  onLocation: () => _chooseLocation(data.locations),
-                  onActivity: () => _chooseActivity(data.activities),
-                  onRating: () => _chooseRating(),
-                  onPrice: () => _choosePrice(data.maximumPrice),
-                  onAvailability: (value) =>
-                      setState(() => _availableOnly = value),
-                  onClear: _activeFilterCount == 0 ? null : _clearFilters,
-                ),
-                if (DiscoveryStore.instance.recent.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xl),
-                  AppSectionHeader(
-                    title: 'Recently Viewed',
-                    subtitle: 'Continue from where you left off.',
-                    actionLabel: 'Clear',
-                    onAction: DiscoveryStore.instance.clearRecent,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  SizedBox(
-                    height: 146,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: DiscoveryStore.instance.recent.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: AppSpacing.sm),
-                      itemBuilder: (context, index) {
-                        final record = DiscoveryStore.instance.recent[index];
-                        final candidate = data.byKey[record.key];
-                        return _RecentDiscoveryCard(
-                          record: record,
-                          onTap: () => candidate == null
-                              ? _showRecord(context, record)
-                              : _open(candidate),
-                        );
-                      },
+            builder:
+                (context, _) => ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
+                  children: [
+                    const AppSectionHeader(
+                      title: 'Explore Uganda',
+                      subtitle:
+                          'Search guides, operators, tours, destinations and activities.',
                     ),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.xl),
-                AppSectionHeader(
-                  title: 'Discovery Results',
-                  subtitle:
-                      '${visible.length} ${visible.length == 1 ? 'match' : 'matches'} for your filters.',
-                  showDivider: false,
+                    const SizedBox(height: AppSpacing.md),
+                    _DiscoverySearchField(
+                      controller: _search,
+                      filterCount: _activeFilterCount,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _FilterBar(
+                      kind: _kind,
+                      location: _location,
+                      activity: _activity,
+                      minimumRating: _minimumRating,
+                      priceEnabled: _priceEnabled,
+                      price: _price,
+                      availableOnly: _availableOnly,
+                      onKind: () => _chooseKind(),
+                      onLocation: () => _chooseLocation(data.locations),
+                      onActivity: () => _chooseActivity(data.activities),
+                      onRating: () => _chooseRating(),
+                      onPrice: () => _choosePrice(data.maximumPrice),
+                      onAvailability:
+                          (value) => setState(() => _availableOnly = value),
+                      onClear: _activeFilterCount == 0 ? null : _clearFilters,
+                    ),
+                    if (DiscoveryStore.instance.recent.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xl),
+                      AppSectionHeader(
+                        title: 'Recently Viewed',
+                        subtitle: 'Continue from where you left off.',
+                        actionLabel: 'Clear',
+                        onAction: DiscoveryStore.instance.clearRecent,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SizedBox(
+                        height: 146,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: DiscoveryStore.instance.recent.length,
+                          separatorBuilder:
+                              (_, __) => const SizedBox(width: AppSpacing.sm),
+                          itemBuilder: (context, index) {
+                            final record =
+                                DiscoveryStore.instance.recent[index];
+                            final candidate = data.byKey[record.key];
+                            return _RecentDiscoveryCard(
+                              record: record,
+                              onTap:
+                                  () =>
+                                      candidate == null
+                                          ? _showRecord(context, record)
+                                          : _open(candidate),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.xl),
+                    AppSectionHeader(
+                      title: 'Discovery Results',
+                      subtitle:
+                          '${visible.length} ${visible.length == 1 ? 'match' : 'matches'} for your filters.',
+                      showDivider: false,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    if (visible.isEmpty)
+                      AppStatePanel(
+                        title: 'No matching experiences',
+                        message:
+                            'Try a wider price range or clear one of the active filters.',
+                        kind: AppStateKind.empty,
+                        onRetry: _clearFilters,
+                        actionLabel: 'Clear filters',
+                      )
+                    else
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.maxWidth >= 760 ? 2 : 1;
+                          final width =
+                              columns == 1
+                                  ? constraints.maxWidth
+                                  : (constraints.maxWidth - AppSpacing.sm) / 2;
+                          return Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.sm,
+                            children:
+                                visible
+                                    .map(
+                                      (candidate) => SizedBox(
+                                        width: width,
+                                        child: _DiscoveryResultCard(
+                                          record: candidate.record,
+                                          saved: DiscoveryStore.instance
+                                              .isSaved(candidate.record),
+                                          onTap: () => _open(candidate),
+                                          onSave:
+                                              () => _toggle(candidate.record),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                          );
+                        },
+                      ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                if (visible.isEmpty)
-                  AppStatePanel(
-                    title: 'No matching experiences',
-                    message:
-                        'Try a wider price range or clear one of the active filters.',
-                    kind: AppStateKind.empty,
-                    onRetry: _clearFilters,
-                    actionLabel: 'Clear filters',
-                  )
-                else
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final columns = constraints.maxWidth >= 760 ? 2 : 1;
-                      final width = columns == 1
-                          ? constraints.maxWidth
-                          : (constraints.maxWidth - AppSpacing.sm) / 2;
-                      return Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: visible
-                            .map(
-                              (candidate) => SizedBox(
-                                width: width,
-                                child: _DiscoveryResultCard(
-                                  record: candidate.record,
-                                  saved: DiscoveryStore.instance
-                                      .isSaved(candidate.record),
-                                  onTap: () => _open(candidate),
-                                  onSave: () => _toggle(candidate.record),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
-                  ),
-              ],
-            ),
           );
         },
       ),
@@ -313,7 +326,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     final saved = await DiscoveryStore.instance.toggleSaved(record);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(saved ? 'Saved for later.' : 'Removed from saved.')),
+      SnackBar(
+        content: Text(saved ? 'Saved for later.' : 'Removed from saved.'),
+      ),
     );
   }
 
@@ -324,7 +339,12 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     if (source is CatalogItem) {
       await Navigator.push<void>(
         context,
-        premiumPageRoute((_) => CatalogDetailPage(item: source)),
+        premiumPageRoute(
+          (_) =>
+              source.isActivity
+                  ? ActivityDetailsPage(item: source)
+                  : DestinationDetailsPage(item: source),
+        ),
       );
     } else if (source is CommunityMember) {
       await Navigator.push<void>(
@@ -340,23 +360,25 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     final value = await _choiceSheet<String>(
       title: 'What are you looking for?',
       values: ['all', ...DiscoveryKind.values.map((value) => value.name)],
-      label: (value) => switch (value) {
-        'guide' => 'Tourist Guides',
-        'operator' => 'Tour Operators',
-        'tour' => 'Tours',
-        'destination' => 'Destinations',
-        'activity' => 'Activities',
-        _ => 'Everything',
-      },
+      label:
+          (value) => switch (value) {
+            'guide' => 'Tourist Guides',
+            'operator' => 'Tour Operators',
+            'tour' => 'Tours',
+            'destination' => 'Destinations',
+            'activity' => 'Activities',
+            _ => 'Everything',
+          },
       selected: _kind?.name ?? 'all',
     );
     if (value.didChoose && value.value != null) {
       setState(() {
-        _kind = value.value == 'all'
-            ? null
-            : DiscoveryKind.values.firstWhere(
-                (kind) => kind.name == value.value,
-              );
+        _kind =
+            value.value == 'all'
+                ? null
+                : DiscoveryKind.values.firstWhere(
+                  (kind) => kind.name == value.value,
+                );
       });
     }
   }
@@ -406,53 +428,55 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     final result = await showModalBottomSheet<RangeValues>(
       context: context,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Price Range',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  'USD ${draft.start.toStringAsFixed(0)} – ${draft.end.toStringAsFixed(0)}',
-                ),
-                RangeSlider(
-                  values: draft,
-                  min: 0,
-                  max: maximumPrice,
-                  divisions: 20,
-                  labels: RangeLabels(
-                    draft.start.toStringAsFixed(0),
-                    draft.end.toStringAsFixed(0),
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setSheetState) => SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Price Range',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'USD ${draft.start.toStringAsFixed(0)} – ${draft.end.toStringAsFixed(0)}',
+                        ),
+                        RangeSlider(
+                          values: draft,
+                          min: 0,
+                          max: maximumPrice,
+                          divisions: 20,
+                          labels: RangeLabels(
+                            draft.start.toStringAsFixed(0),
+                            draft.end.toStringAsFixed(0),
+                          ),
+                          onChanged:
+                              (value) => setSheetState(() => draft = value),
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Any price'),
+                            ),
+                            const Spacer(),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, draft),
+                              child: const Text('Apply'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  onChanged: (value) => setSheetState(() => draft = value),
                 ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Any price'),
-                    ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, draft),
-                      child: const Text('Apply'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
           ),
-        ),
-      ),
     );
     if (!mounted) return;
     setState(() {
@@ -472,38 +496,39 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * .72,
-          ),
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+      builder:
+          (context) => SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .72,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
-                ),
+                    ),
+                  ),
+                  for (final item in values)
+                    RadioListTile<T>(
+                      value: item,
+                      groupValue: selected,
+                      title: Text(label(item)),
+                      onChanged: (next) {
+                        chosen = true;
+                        Navigator.pop(context, next);
+                      },
+                    ),
+                ],
               ),
-              for (final item in values)
-                RadioListTile<T>(
-                  value: item,
-                  groupValue: selected,
-                  title: Text(label(item)),
-                  onChanged: (next) {
-                    chosen = true;
-                    Navigator.pop(context, next);
-                  },
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
     return _ChoiceResult(value: value, didChoose: chosen);
   }
@@ -517,10 +542,83 @@ class SavedDiscoveryPage extends StatefulWidget {
 }
 
 class _SavedDiscoveryPageState extends State<SavedDiscoveryPage> {
+  late Future<_DiscoveryData> _data;
+
   @override
   void initState() {
     super.initState();
     DiscoveryStore.instance.ensureLoaded();
+    _data = _load();
+  }
+
+  Future<_DiscoveryData> _load() async {
+    final catalog = await CatalogService.instance.fetchCatalog();
+    final offerings = await OperatorOfferingsService.instance.fetch();
+
+    FeaturedProviders providers;
+    try {
+      providers = await CommunityService.instance.fetchFeaturedProviders();
+    } catch (_) {
+      providers = const FeaturedProviders(guides: [], operators: []);
+    }
+
+    return _DiscoveryData(
+      catalog: catalog,
+      offerings: offerings,
+      providers: providers,
+    );
+  }
+
+  void _retry() {
+    setState(() {
+      _data = _load();
+    });
+  }
+
+  Future<void> _openSaved(
+    BuildContext context,
+    DiscoveryRecord record,
+    _DiscoveryData data,
+  ) async {
+    final candidate = data.byKey[record.key];
+
+    if (candidate == null) {
+      await _showRecord(context, record);
+      return;
+    }
+
+    await DiscoveryStore.instance.recordView(candidate.record);
+    if (!context.mounted) return;
+
+    final source = candidate.source;
+
+    if (source is CatalogItem) {
+      await Navigator.push<void>(
+        context,
+        premiumPageRoute(
+          (_) =>
+              source.isActivity
+                  ? ActivityDetailsPage(item: source)
+                  : DestinationDetailsPage(item: source),
+        ),
+      );
+      return;
+    }
+
+    if (source is CommunityMember) {
+      await Navigator.push<void>(
+        context,
+        premiumPageRoute((_) => ProviderProfilePage(member: source)),
+      );
+      return;
+    }
+
+    if (source is OperatorTour) {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(builder: (_) => TourDetailsPage(tour: source)),
+      );
+    }
   }
 
   @override
@@ -530,38 +628,56 @@ class _SavedDiscoveryPageState extends State<SavedDiscoveryPage> {
         animation: DiscoveryStore.instance,
         builder: (context, _) {
           final saved = DiscoveryStore.instance.saved;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
-            children: [
-              AppSectionHeader(
-                title: 'Saved',
-                subtitle: saved.isEmpty
-                    ? 'Your shortlist will stay ready here.'
-                    : '${saved.length} saved ${saved.length == 1 ? 'item' : 'items'} across your safari research.',
-              ),
-              const SizedBox(height: AppSpacing.md),
-              if (!DiscoveryStore.instance.isLoaded)
-                const AppDiscoverySkeleton()
-              else if (saved.isEmpty)
-                const AppStatePanel(
-                  title: 'Nothing saved yet',
-                  message:
-                      'Use the heart on a guide, operator, tour or destination to keep it here.',
-                  kind: AppStateKind.empty,
-                )
-              else
-                ...saved.map(
-                  (record) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _DiscoveryResultCard(
-                      record: record,
-                      saved: true,
-                      onTap: () => _showRecord(context, record),
-                      onSave: () => DiscoveryStore.instance.toggleSaved(record),
-                    ),
+
+          return FutureBuilder<_DiscoveryData>(
+            future: _data,
+            builder: (context, snapshot) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
+                children: [
+                  AppSectionHeader(
+                    title: 'Saved',
+                    subtitle:
+                        saved.isEmpty
+                            ? 'Your shortlist will stay ready here.'
+                            : '${saved.length} saved ${saved.length == 1 ? 'item' : 'items'} across your safari research.',
                   ),
-                ),
-            ],
+                  const SizedBox(height: AppSpacing.md),
+                  if (!DiscoveryStore.instance.isLoaded ||
+                      snapshot.connectionState != ConnectionState.done)
+                    const AppDiscoverySkeleton()
+                  else if (saved.isEmpty)
+                    const AppStatePanel(
+                      title: 'Nothing saved yet',
+                      message:
+                          'Use the heart on a guide, operator, tour or destination to keep it here.',
+                      kind: AppStateKind.empty,
+                    )
+                  else if (snapshot.hasError)
+                    AppStatePanel(
+                      title: 'Saved items could not be refreshed',
+                      message:
+                          'Your saved list is safe. Reconnect to open the latest tour and provider pages.',
+                      kind: AppStateKind.offline,
+                      onRetry: _retry,
+                    )
+                  else
+                    ...saved.map(
+                      (record) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: _DiscoveryResultCard(
+                          record: record,
+                          saved: true,
+                          onTap:
+                              () => _openSaved(context, record, snapshot.data!),
+                          onSave:
+                              () => DiscoveryStore.instance.toggleSaved(record),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -607,7 +723,9 @@ class _DiscoveryData {
         ),
       ),
     ];
-    byKey = {for (final candidate in candidates) candidate.record.key: candidate};
+    byKey = {
+      for (final candidate in candidates) candidate.record.key: candidate,
+    };
   }
 
   final TourismCatalog catalog;
@@ -616,28 +734,33 @@ class _DiscoveryData {
   late final List<_DiscoveryCandidate> candidates;
   late final Map<String, _DiscoveryCandidate> byKey;
 
-  List<String> get locations => candidates
-      .map((candidate) => candidate.record.location.trim())
-      .where((value) => value.isNotEmpty)
-      .toSet()
-      .toList()
-    ..sort();
+  List<String> get locations =>
+      candidates
+          .map((candidate) => candidate.record.location.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
 
-  List<String> get activities => candidates
-      .expand((candidate) => candidate.record.activities)
-      .where((value) => value.trim().isNotEmpty)
-      .toSet()
-      .toList()
-    ..sort();
+  List<String> get activities =>
+      candidates
+          .expand((candidate) => candidate.record.activities)
+          .where((value) => value.trim().isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
 
   double get maximumPrice {
-    final prices = candidates
-        .map((candidate) => candidate.record.price)
-        .whereType<double>()
-        .where((value) => value > 0)
-        .toList();
+    final prices =
+        candidates
+            .map((candidate) => candidate.record.price)
+            .whereType<double>()
+            .where((value) => value > 0)
+            .toList();
     if (prices.isEmpty) return 5000;
-    final maximum = prices.reduce((first, second) => first > second ? first : second);
+    final maximum = prices.reduce(
+      (first, second) => first > second ? first : second,
+    );
     return ((maximum / 100).ceil() * 100).clamp(100, 100000).toDouble();
   }
 }
@@ -676,21 +799,22 @@ class _DiscoverySearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: 'Search places, activities or providers',
         prefixIcon: const Icon(Icons.search_rounded),
-        suffixIcon: controller.text.isEmpty
-            ? filterCount == 0
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Badge(label: Text('$filterCount')),
-                  )
-            : IconButton(
-                tooltip: 'Clear search',
-                onPressed: () {
-                  controller.clear();
-                  onChanged('');
-                },
-                icon: const Icon(Icons.close_rounded),
-              ),
+        suffixIcon:
+            controller.text.isEmpty
+                ? filterCount == 0
+                    ? null
+                    : Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Badge(label: Text('$filterCount')),
+                    )
+                : IconButton(
+                  tooltip: 'Clear search',
+                  onPressed: () {
+                    controller.clear();
+                    onChanged('');
+                  },
+                  icon: const Icon(Icons.close_rounded),
+                ),
       ),
     );
   }
@@ -757,9 +881,10 @@ class _FilterBar extends StatelessWidget {
             onTap: onRating,
           ),
           _FilterAction(
-            label: priceEnabled
-                ? 'USD ${price.start.toStringAsFixed(0)}–${price.end.toStringAsFixed(0)}'
-                : 'Price',
+            label:
+                priceEnabled
+                    ? 'USD ${price.start.toStringAsFixed(0)}–${price.end.toStringAsFixed(0)}'
+                    : 'Price',
             active: priceEnabled,
             onTap: onPrice,
           ),
@@ -833,10 +958,7 @@ class _DiscoveryResultCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              width: 106,
-              child: _DiscoveryImage(record: record),
-            ),
+            SizedBox(width: 106, child: _DiscoveryImage(record: record)),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
@@ -881,7 +1003,10 @@ class _DiscoveryResultCard extends StatelessWidget {
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        _RecordMeta(icon: Icons.category_outlined, text: record.kindLabel),
+                        _RecordMeta(
+                          icon: Icons.category_outlined,
+                          text: record.kindLabel,
+                        ),
                         if (record.rating > 0)
                           _RecordMeta(
                             icon: Icons.star_rounded,
@@ -952,9 +1077,9 @@ class _RecordMeta extends StatelessWidget {
         const SizedBox(width: 3),
         Text(
           text,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -996,8 +1121,8 @@ class _RecentDiscoveryCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
@@ -1021,66 +1146,38 @@ Future<void> _showRecord(BuildContext context, DiscoveryRecord record) {
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (context) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              record.title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+    builder:
+        (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(record.kindLabel),
+                if (record.location.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(record.location),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                Text(record.subtitle),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(record.kindLabel),
-            if (record.location.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(record.location),
-            ],
-            const SizedBox(height: AppSpacing.md),
-            Text(record.subtitle),
-          ],
+          ),
         ),
-      ),
-    ),
   );
 }
 
-Future<void> _showTour(BuildContext context, OperatorTour tour) {
-  return showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (context) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              tour.name,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text('${tour.days} days • ${tour.operatorName}'),
-            const SizedBox(height: AppSpacing.md),
-            Text(tour.overview),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              '${tour.currency} ${tour.price.toStringAsFixed(0)}',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    ),
+Future<void> _showTour(BuildContext context, OperatorTour tour) async {
+  await Navigator.push<void>(
+    context,
+    MaterialPageRoute<void>(builder: (_) => TourDetailsPage(tour: tour)),
   );
 }

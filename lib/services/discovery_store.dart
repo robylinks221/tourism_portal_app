@@ -96,10 +96,7 @@ class DiscoveryStore extends ChangeNotifier {
     await _write(_recentPrefix, _recent);
   }
 
-  Future<void> _write(
-    String prefix,
-    Iterable<DiscoveryRecord> records,
-  ) async {
+  Future<void> _write(String prefix, Iterable<DiscoveryRecord> records) async {
     final owner = _ownerId ?? _currentOwner;
     try {
       await _storage.write(
@@ -118,9 +115,9 @@ class DiscoveryStore extends ChangeNotifier {
       if (value is! List) return const [];
       return value
           .whereType<Map>()
-          .map((item) => DiscoveryRecord.fromJson(
-                Map<String, dynamic>.from(item),
-              ))
+          .map(
+            (item) => DiscoveryRecord.fromJson(Map<String, dynamic>.from(item)),
+          )
           .where((record) => record.id > 0 && record.title.isNotEmpty)
           .toList();
     } on Object {

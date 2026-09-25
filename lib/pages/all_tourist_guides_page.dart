@@ -734,6 +734,7 @@ class _AllTouristGuidesPageState extends State<AllTouristGuidesPage> {
                     return PremiumProviderCard(
                       member: guide,
                       isGuest: _isGuest,
+                      showOperatingCountries: false,
                     );
                   },
                 ),

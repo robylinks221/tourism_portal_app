@@ -23,6 +23,8 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _hidePassword = true;
   bool _isSubmitting = false;
+  bool _rememberLogin = true;
+  bool _loadingRememberedLogin = true;
 
   static const Color _primary = FieldGuidePalette.primary;
   static const Color _secondary = FieldGuidePalette.secondary;
@@ -32,8 +34,32 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
 
-    _communityAvatars =
-        CommunityService.instance.fetchLoginAvatars();
+    _communityAvatars = CommunityService.instance.fetchLoginAvatars();
+    _loadRememberedLogin();
+  }
+
+  Future<void> _loadRememberedLogin() async {
+    try {
+      final remembered = await AuthService.instance.loadRememberedLogin();
+
+      if (!mounted) return;
+
+      if (remembered.enabled) {
+        _emailController.text = remembered.email;
+        _passwordController.text = remembered.password;
+      }
+
+      setState(() {
+        _rememberLogin = remembered.enabled;
+        _loadingRememberedLogin = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadingRememberedLogin = false;
+      });
+    }
   }
 
   @override
@@ -47,8 +73,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submitLogin() async {
     FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate() ||
-        _isSubmitting) {
+    if (!_formKey.currentState!.validate() || _isSubmitting) {
       return;
     }
 
@@ -62,6 +87,15 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
 
+      if (_rememberLogin) {
+        await AuthService.instance.saveRememberedLogin(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        await AuthService.instance.clearRememberedLogin();
+      }
+
       if (!mounted) {
         return;
       }
@@ -69,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushNamedAndRemoveUntil(
         context,
         user.nextRoute,
-            (route) => false,
+        (route) => false,
       );
     } on ApiException catch (error) {
       if (!mounted) {
@@ -89,9 +123,7 @@ class _LoginPageState extends State<LoginPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Unable to sign in. Please try again.',
-          ),
+          content: Text('Unable to sign in. Please try again.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -107,11 +139,9 @@ class _LoginPageState extends State<LoginPage> {
   void _continueAsGuest() {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
-        builder: (_) => const TouristHomePage(
-          isGuest: true,
-        ),
+        builder: (_) => const TouristHomePage(isGuest: true),
       ),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -125,14 +155,9 @@ class _LoginPageState extends State<LoginPage> {
           builder: (context, constraints) {
             return SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Column(
-                  children: [
-                    _buildHeader(context),
-                    _buildLoginPanel(context),
-                  ],
+                  children: [_buildHeader(context), _buildLoginPanel(context)],
                 ),
               ),
             );
@@ -150,12 +175,7 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       width: double.infinity,
       color: _primary,
-      padding: const EdgeInsets.fromLTRB(
-        22,
-        10,
-        22,
-        32,
-      ),
+      padding: const EdgeInsets.fromLTRB(22, 10, 22, 32),
       child: Column(
         children: [
           Row(
@@ -167,9 +187,7 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () {
                     Navigator.maybePop(context);
                   },
-                  icon: const Icon(
-                    Icons.arrow_back_rounded,
-                  ),
+                  icon: const Icon(Icons.arrow_back_rounded),
                   color: Colors.white,
                   iconSize: 20,
                 ),
@@ -213,9 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   _LoginAvatarCluster(
                     avatars: snapshot.data ?? const [],
-                    loading:
-                    snapshot.connectionState !=
-                        ConnectionState.done,
+                    loading: snapshot.connectionState != ConnectionState.done,
                   ),
 
                   const SizedBox(height: 14),
@@ -252,12 +268,7 @@ class _LoginPageState extends State<LoginPage> {
           topRight: Radius.circular(36),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        24,
-        30,
-        24,
-        42,
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 42),
       child: Form(
         key: _formKey,
         child: Column(
@@ -291,14 +302,11 @@ class _LoginPageState extends State<LoginPage> {
             // ==================================================
             // EMAIL
             // ==================================================
-
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
-              autofillHints: const [
-                AutofillHints.email,
-              ],
+              autofillHints: const [AutofillHints.email],
               decoration: _fieldDecoration(
                 label: 'Email Address',
                 hint: 'Enter your email',
@@ -311,8 +319,7 @@ class _LoginPageState extends State<LoginPage> {
                   return 'Please enter your email address.';
                 }
 
-                if (!email.contains('@') ||
-                    !email.contains('.')) {
+                if (!email.contains('@') || !email.contains('.')) {
                   return 'Please enter a valid email address.';
                 }
 
@@ -325,14 +332,11 @@ class _LoginPageState extends State<LoginPage> {
             // ==================================================
             // PASSWORD
             // ==================================================
-
             TextFormField(
               controller: _passwordController,
               obscureText: _hidePassword,
               textInputAction: TextInputAction.done,
-              autofillHints: const [
-                AutofillHints.password,
-              ],
+              autofillHints: const [AutofillHints.password],
               onFieldSubmitted: (_) {
                 _submitLogin();
               },
@@ -367,12 +371,58 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
+
+            // ==================================================
+            // REMEMBER LOGIN DETAILS
+            // ==================================================
+            Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _rememberLogin,
+                    activeColor: _primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    onChanged:
+                        _loadingRememberedLogin
+                            ? null
+                            : (value) async {
+                              final enabled = value ?? false;
+
+                              setState(() {
+                                _rememberLogin = enabled;
+                              });
+
+                              if (!enabled) {
+                                await AuthService.instance
+                                    .clearRememberedLogin();
+                              }
+                            },
+                  ),
+                ),
+                const SizedBox(width: 9),
+                const Expanded(
+                  child: Text(
+                    'Remember login details',
+                    style: TextStyle(
+                      color: FieldGuidePalette.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 2),
 
             // ==================================================
             // FORGOT PASSWORD
             // ==================================================
-
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -386,18 +436,13 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        'Password recovery will be added soon.',
-                      ),
+                      content: Text('Password recovery will be added soon.'),
                     ),
                   );
                 },
                 child: const Text(
                   'Forgot Password?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -408,18 +453,13 @@ class _LoginPageState extends State<LoginPage> {
             // PREMIUM SIGN IN BUTTON
             // SAME DESIGN AS CREATE ACCOUNT BUTTON
             // ==================================================
-
-            _SignInButton(
-              loading: _isSubmitting,
-              onPressed: _submitLogin,
-            ),
+            _SignInButton(loading: _isSubmitting, onPressed: _submitLogin),
 
             const SizedBox(height: 20),
 
             // ==================================================
             // GUEST
             // ==================================================
-
             _buildGuestButton(),
 
             const SizedBox(height: 26),
@@ -427,7 +467,6 @@ class _LoginPageState extends State<LoginPage> {
             // ==================================================
             // CREATE ACCOUNT
             // ==================================================
-
             _buildCreateAccountRow(),
 
             const SizedBox(height: 24),
@@ -447,21 +486,13 @@ class _LoginPageState extends State<LoginPage> {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap:
-        _isSubmitting ? null : _continueAsGuest,
+        onTap: _isSubmitting ? null : _continueAsGuest,
         child: Container(
-          constraints: const BoxConstraints(
-            minHeight: 72,
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 13,
-          ),
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: FieldGuidePalette.border,
-            ),
+            border: Border.all(color: FieldGuidePalette.border),
           ),
           child: const Row(
             children: [
@@ -471,10 +502,8 @@ class _LoginPageState extends State<LoginPage> {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-                  mainAxisAlignment:
-                  MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       'Continue as Guest',
@@ -490,8 +519,7 @@ class _LoginPageState extends State<LoginPage> {
                     Text(
                       'Explore first, create an account later',
                       style: TextStyle(
-                        color:
-                        FieldGuidePalette.mutedText,
+                        color: FieldGuidePalette.mutedText,
                         fontSize: 11.5,
                       ),
                     ),
@@ -499,11 +527,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              Icon(
-                Icons.arrow_forward_rounded,
-                color: _primary,
-                size: 22,
-              ),
+              Icon(Icons.arrow_forward_rounded, color: _primary, size: 22),
             ],
           ),
         ),
@@ -521,32 +545,20 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         const Text(
           'Don’t have an account?',
-          style: TextStyle(
-            color: FieldGuidePalette.mutedText,
-            fontSize: 13,
-          ),
+          style: TextStyle(color: FieldGuidePalette.mutedText, fontSize: 13),
         ),
 
         TextButton(
           style: TextButton.styleFrom(
             foregroundColor: _secondary,
-            padding: const EdgeInsets.only(
-              left: 6,
-              right: 4,
-            ),
+            padding: const EdgeInsets.only(left: 6, right: 4),
           ),
           onPressed: () {
-            Navigator.pushReplacementNamed(
-              context,
-              '/register',
-            );
+            Navigator.pushReplacementNamed(context, '/register');
           },
           child: const Text(
             'Create Account',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -573,8 +585,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
 
       hintStyle: TextStyle(
-        color:
-        FieldGuidePalette.mutedText.withOpacity(.62),
+        color: FieldGuidePalette.mutedText.withOpacity(.62),
         fontSize: 13,
       ),
 
@@ -587,64 +598,42 @@ class _LoginPageState extends State<LoginPage> {
             color: _primary.withOpacity(.08),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: _primary,
-            size: 21,
-          ),
+          child: Icon(icon, color: _primary, size: 21),
         ),
       ),
 
-      prefixIconConstraints: const BoxConstraints(
-        minWidth: 64,
-        minHeight: 62,
-      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 64, minHeight: 62),
 
       suffixIcon: suffix,
 
       filled: true,
       fillColor: FieldGuidePalette.surface,
 
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 18,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: FieldGuidePalette.border,
-        ),
+        borderSide: const BorderSide(color: FieldGuidePalette.border),
       ),
 
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: FieldGuidePalette.border,
-        ),
+        borderSide: const BorderSide(color: FieldGuidePalette.border),
       ),
 
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: _primary,
-          width: 1.6,
-        ),
+        borderSide: const BorderSide(color: _primary, width: 1.6),
       ),
 
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
 
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
     );
   }
@@ -655,10 +644,7 @@ class _LoginPageState extends State<LoginPage> {
 // ================================================================
 
 class _SignInButton extends StatelessWidget {
-  const _SignInButton({
-    required this.loading,
-    required this.onPressed,
-  });
+  const _SignInButton({required this.loading, required this.onPressed});
 
   final bool loading;
   final VoidCallback onPressed;
@@ -673,10 +659,7 @@ class _SignInButton extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF165B5D),
-              Color(0xFF0A3D3F),
-            ],
+            colors: [Color(0xFF165B5D), Color(0xFF0A3D3F)],
           ),
 
           // Full pill shape
@@ -697,20 +680,13 @@ class _SignInButton extends StatelessWidget {
             onTap: loading ? null : onPressed,
             borderRadius: BorderRadius.circular(100),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                5,
-                6,
-                5,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 5, 6, 5),
               child: Row(
                 children: [
                   Expanded(
                     child: Center(
                       child: Text(
-                        loading
-                            ? 'Signing In...'
-                            : 'Sign In',
+                        loading ? 'Signing In...' : 'Sign In',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -728,23 +704,21 @@ class _SignInButton extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: loading
-                        ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child:
-                      CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(
-                          0xFF165B5D,
-                        ),
-                      ),
-                    )
-                        : const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.black,
-                      size: 19,
-                    ),
+                    child:
+                        loading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF165B5D),
+                              ),
+                            )
+                            : const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.black,
+                              size: 19,
+                            ),
                   ),
                 ],
               ),
@@ -769,8 +743,7 @@ class _GuestIcon extends StatelessWidget {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color:
-        FieldGuidePalette.primary.withOpacity(.09),
+        color: FieldGuidePalette.primary.withOpacity(.09),
         shape: BoxShape.circle,
       ),
       child: const Icon(
@@ -787,10 +760,7 @@ class _GuestIcon extends StatelessWidget {
 // ================================================================
 
 class _LoginAvatarCluster extends StatelessWidget {
-  const _LoginAvatarCluster({
-    required this.avatars,
-    required this.loading,
-  });
+  const _LoginAvatarCluster({required this.avatars, required this.loading});
 
   final List<LoginCommunityAvatar> avatars;
   final bool loading;
@@ -806,8 +776,7 @@ class _LoginAvatarCluster extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label:
-      'Profile photos of newly joined guides and tourists',
+      label: 'Profile photos of newly joined guides and tourists',
       child: Center(
         child: SizedBox(
           width: 166,
@@ -815,20 +784,12 @@ class _LoginAvatarCluster extends StatelessWidget {
           child: ExcludeSemantics(
             child: Stack(
               children: [
-                for (
-                var index = 0;
-                index < 4;
-                index++
-                )
+                for (var index = 0; index < 4; index++)
                   Positioned(
                     left: index * 36,
                     child: _LoginAvatar(
-                      profile:
-                      index < avatars.length
-                          ? avatars[index]
-                          : null,
-                      background:
-                      _fallbackColors[index],
+                      profile: index < avatars.length ? avatars[index] : null,
+                      background: _fallbackColors[index],
                       loading: loading,
                     ),
                   ),
@@ -859,29 +820,26 @@ class _LoginAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallback = Container(
-      color: background.withOpacity(
-        loading ? .45 : 1,
-      ),
+      color: background.withOpacity(loading ? .45 : 1),
       alignment: Alignment.center,
       child:
-      profile == null
-          ? const Icon(
-        Icons.person_rounded,
-        color: Colors.white70,
-        size: 27,
-      )
-          : Text(
-        _initials(profile!.name),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+          profile == null
+              ? const Icon(
+                Icons.person_rounded,
+                color: Colors.white70,
+                size: 27,
+              )
+              : Text(
+                _initials(profile!.name),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
     );
 
-    final photoUrl =
-        profile?.profilePhotoUrl ?? '';
+    final photoUrl = profile?.profilePhotoUrl ?? '';
 
     return Container(
       width: 60,
@@ -900,14 +858,13 @@ class _LoginAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child:
-        photoUrl.isEmpty
-            ? fallback
-            : Image.network(
-          photoUrl,
-          fit: BoxFit.cover,
-          errorBuilder:
-              (_, __, ___) => fallback,
-        ),
+            photoUrl.isEmpty
+                ? fallback
+                : Image.network(
+                  photoUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => fallback,
+                ),
       ),
     );
   }
@@ -921,14 +878,8 @@ String _initials(String name) {
   final parts = name
       .trim()
       .split(RegExp(r'\s+'))
-      .where(
-        (part) => part.isNotEmpty,
-  )
+      .where((part) => part.isNotEmpty)
       .take(2);
 
-  return parts
-      .map(
-        (part) => part[0].toUpperCase(),
-  )
-      .join();
+  return parts.map((part) => part[0].toUpperCase()).join();
 }

@@ -46,15 +46,22 @@ class AdminProviderService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      final response = method == 'GET'
-          ? await http.get(uri, headers: headers).timeout(const Duration(seconds: 20))
-          : await http
-              .post(uri, headers: headers, body: jsonEncode(body))
-              .timeout(const Duration(seconds: 20));
-      final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
-      final data = decoded is Map
-          ? Map<String, dynamic>.from(decoded)
-          : <String, dynamic>{};
+      final response =
+          method == 'GET'
+              ? await http
+                  .get(uri, headers: headers)
+                  .timeout(const Duration(seconds: 20))
+              : await http
+                  .post(uri, headers: headers, body: jsonEncode(body))
+                  .timeout(const Duration(seconds: 20));
+      final decoded =
+          response.body.isEmpty
+              ? <String, dynamic>{}
+              : jsonDecode(response.body);
+      final data =
+          decoded is Map
+              ? Map<String, dynamic>.from(decoded)
+              : <String, dynamic>{};
       if (response.statusCode >= 200 && response.statusCode < 300) return data;
       throw ApiException(
         data['message']?.toString() ?? 'Provider review failed.',
@@ -68,7 +75,9 @@ class AdminProviderService {
     } on TimeoutException {
       throw const ApiException('Provider verification timed out.');
     } on FormatException {
-      throw const ApiException('The provider verification response was unreadable.');
+      throw const ApiException(
+        'The provider verification response was unreadable.',
+      );
     } on http.ClientException {
       throw const ApiException('The provider verification request failed.');
     }

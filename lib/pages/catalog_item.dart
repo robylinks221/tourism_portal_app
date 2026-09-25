@@ -87,7 +87,8 @@ class Accommodation {
   final String? website;
 
   String get imageUrl => AuthService.storageUrl(image);
-  String get formattedPrice => '\$${pricePerNight.toStringAsFixed(pricePerNight.truncateToDouble() == pricePerNight ? 0 : 2)} / night';
+  String get formattedPrice =>
+      '\$${pricePerNight.toStringAsFixed(pricePerNight.truncateToDouble() == pricePerNight ? 0 : 2)} / night';
 
   factory Accommodation.fromJson(Map<String, dynamic> json) {
     final amenities = json['amenities'];
@@ -98,9 +99,13 @@ class Accommodation {
       location: json['location']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       image: json['image']?.toString(),
-      pricePerNight: double.tryParse(json['price_per_night']?.toString() ?? '') ?? 0,
+      pricePerNight:
+          double.tryParse(json['price_per_night']?.toString() ?? '') ?? 0,
       currency: json['currency']?.toString() ?? 'USD',
-      amenities: amenities is List ? amenities.map((item) => item.toString()).toList() : const [],
+      amenities:
+          amenities is List
+              ? amenities.map((item) => item.toString()).toList()
+              : const [],
       contactPhone: json['contact_phone']?.toString(),
       contactEmail: json['contact_email']?.toString(),
       website: json['website']?.toString(),

@@ -21,9 +21,10 @@ class CurrentUserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userName = AuthService.instance.currentUser?.name.trim() ?? '';
-    final initial = userName.isEmpty
-        ? 'U'
-        : String.fromCharCode(userName.runes.first).toUpperCase();
+    final initial =
+        userName.isEmpty
+            ? 'U'
+            : String.fromCharCode(userName.runes.first).toUpperCase();
     final diameter = radius * 2;
 
     Widget fallback() {
@@ -44,18 +45,20 @@ class CurrentUserAvatar extends StatelessWidget {
 
     return Semantics(
       image: true,
-      label: userName.isEmpty
-          ? 'User profile picture'
-          : '$userName profile picture',
+      label:
+          userName.isEmpty
+              ? 'User profile picture'
+              : '$userName profile picture',
       child: Container(
         width: diameter,
         height: diameter,
         decoration: BoxDecoration(
           color: backgroundColor,
           shape: BoxShape.circle,
-          border: borderColor == null || borderWidth <= 0
-              ? null
-              : Border.all(color: borderColor!, width: borderWidth),
+          border:
+              borderColor == null || borderWidth <= 0
+                  ? null
+                  : Border.all(color: borderColor!, width: borderWidth),
         ),
         clipBehavior: Clip.antiAlias,
         child: FutureBuilder<String>(

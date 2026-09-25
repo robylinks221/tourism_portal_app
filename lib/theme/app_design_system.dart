@@ -37,14 +37,14 @@ abstract final class AppElevation {
   }
 
   static List<BoxShadow> raised(BuildContext context) => [
-        BoxShadow(
-          color: Colors.black.withOpacity(
-            Theme.of(context).brightness == Brightness.dark ? .26 : .10,
-          ),
-          blurRadius: 26,
-          offset: const Offset(0, 10),
-        ),
-      ];
+    BoxShadow(
+      color: Colors.black.withOpacity(
+        Theme.of(context).brightness == Brightness.dark ? .26 : .10,
+      ),
+      blurRadius: 26,
+      offset: const Offset(0, 10),
+    ),
+  ];
 }
 
 abstract final class AppBreakpoints {

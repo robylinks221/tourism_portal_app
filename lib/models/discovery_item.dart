@@ -32,12 +32,12 @@ class DiscoveryRecord {
   String get key => '${kind.name}:$id';
 
   String get kindLabel => switch (kind) {
-        DiscoveryKind.guide => 'Tourist Guide',
-        DiscoveryKind.operator => 'Tour Operator',
-        DiscoveryKind.tour => 'Tour',
-        DiscoveryKind.destination => 'Destination',
-        DiscoveryKind.activity => 'Activity',
-      };
+    DiscoveryKind.guide => 'Tourist Guide',
+    DiscoveryKind.operator => 'Tour Operator',
+    DiscoveryKind.tour => 'Tour',
+    DiscoveryKind.destination => 'Destination',
+    DiscoveryKind.activity => 'Activity',
+  };
 
   factory DiscoveryRecord.fromCatalog(CatalogItem item) {
     double? price;
@@ -47,22 +47,23 @@ class DiscoveryRecord {
           .reduce((first, second) => first < second ? first : second);
     }
     return DiscoveryRecord(
-      kind: item.isActivity
-          ? DiscoveryKind.activity
-          : DiscoveryKind.destination,
+      kind:
+          item.isActivity ? DiscoveryKind.activity : DiscoveryKind.destination,
       id: item.id,
       title: item.name,
-      subtitle: item.tagline?.trim().isNotEmpty == true
-          ? item.tagline!.trim()
-          : item.description,
+      subtitle:
+          item.tagline?.trim().isNotEmpty == true
+              ? item.tagline!.trim()
+              : item.description,
       location: [item.location, item.country]
           .whereType<String>()
           .where((value) => value.trim().isNotEmpty)
           .join(', '),
       imageUrl: item.imageUrl,
-      activities: item.isActivity
-          ? [item.name]
-          : item.activities.map((activity) => activity.name).toList(),
+      activities:
+          item.isActivity
+              ? [item.name]
+              : item.activities.map((activity) => activity.name).toList(),
       rating: 0,
       price: price,
       available: item.isActive,
@@ -71,17 +72,19 @@ class DiscoveryRecord {
 
   factory DiscoveryRecord.fromProvider(CommunityMember member) {
     return DiscoveryRecord(
-      kind: member.isGuide
-          ? DiscoveryKind.guide
-          : DiscoveryKind.operator,
+      kind: member.isGuide ? DiscoveryKind.guide : DiscoveryKind.operator,
       id: member.id,
       title: member.name,
-      subtitle: member.biography.trim().isEmpty
-          ? (member.isGuide ? 'Local tourist guide' : 'Safari tour operator')
-          : member.biography.trim(),
-      location: member.location.trim().isNotEmpty
-          ? member.location.trim()
-          : member.country.trim(),
+      subtitle:
+          member.biography.trim().isEmpty
+              ? (member.isGuide
+                  ? 'Local tourist guide'
+                  : 'Safari tour operator')
+              : member.biography.trim(),
+      location:
+          member.location.trim().isNotEmpty
+              ? member.location.trim()
+              : member.country.trim(),
       imageUrl: member.profilePhotoUrl,
       activities: member.activityNames,
       rating: member.ratingAverage,
@@ -94,12 +97,14 @@ class DiscoveryRecord {
       kind: DiscoveryKind.tour,
       id: tour.id,
       title: tour.name,
-      subtitle: tour.overview.trim().isEmpty
-          ? '${tour.days} day safari by ${tour.operatorName}'
-          : tour.overview.trim(),
-      location: [tour.operatorLocation, ...tour.destinationNames]
-          .where((value) => value.trim().isNotEmpty)
-          .join(', '),
+      subtitle:
+          tour.overview.trim().isEmpty
+              ? '${tour.days} day safari by ${tour.operatorName}'
+              : tour.overview.trim(),
+      location: [
+        tour.operatorLocation,
+        ...tour.destinationNames,
+      ].where((value) => value.trim().isNotEmpty).join(', '),
       imageUrl: tour.imageUrl,
       activities: tour.activityNames,
       rating: tour.operatorRatingAverage,
@@ -109,17 +114,17 @@ class DiscoveryRecord {
   }
 
   Map<String, dynamic> toJson() => {
-        'kind': kind.name,
-        'id': id,
-        'title': title,
-        'subtitle': subtitle,
-        'location': location,
-        'image_url': imageUrl,
-        'activities': activities,
-        'rating': rating,
-        'price': price,
-        'available': available,
-      };
+    'kind': kind.name,
+    'id': id,
+    'title': title,
+    'subtitle': subtitle,
+    'location': location,
+    'image_url': imageUrl,
+    'activities': activities,
+    'rating': rating,
+    'price': price,
+    'available': available,
+  };
 
   factory DiscoveryRecord.fromJson(Map<String, dynamic> json) {
     final kindName = json['kind']?.toString() ?? '';
@@ -135,13 +140,15 @@ class DiscoveryRecord {
       subtitle: json['subtitle']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
       imageUrl: json['image_url']?.toString() ?? '',
-      activities: rawActivities is List
-          ? rawActivities.map((value) => value.toString()).toList()
-          : const [],
+      activities:
+          rawActivities is List
+              ? rawActivities.map((value) => value.toString()).toList()
+              : const [],
       rating: double.tryParse(json['rating']?.toString() ?? '') ?? 0,
-      price: json['price'] == null
-          ? null
-          : double.tryParse(json['price'].toString()),
+      price:
+          json['price'] == null
+              ? null
+              : double.tryParse(json['price'].toString()),
       available: json['available'] == true || json['available'] == 1,
     );
   }

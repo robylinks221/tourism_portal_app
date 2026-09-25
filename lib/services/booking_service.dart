@@ -195,6 +195,117 @@ class BookingService {
   }
 
   // ============================================================
+  // OPERATOR -> TEAM GUIDE ASSIGNMENTS
+  // ============================================================
+
+  Future<List<EligibleTeamGuide>> fetchEligibleTeamGuides({
+    required int bookingId,
+    String query = '',
+  }) async {
+    final trimmed = query.trim();
+    final path =
+        trimmed.isEmpty
+            ? '/operator/bookings/$bookingId/eligible-guides'
+            : '/operator/bookings/$bookingId/eligible-guides?q=${Uri.encodeQueryComponent(trimmed)}';
+
+    final data = await _request('GET', path);
+
+    return _maps(data['guides']).map(EligibleTeamGuide.fromJson).toList();
+  }
+
+  Future<BookingGuideAssignmentItem?> fetchBookingGuideAssignment(
+    int bookingId,
+  ) async {
+    final data = await _request(
+      'GET',
+      '/operator/bookings/$bookingId/guide-assignment',
+    );
+
+    final assignment = data['assignment'];
+
+    if (assignment is! Map) {
+      return null;
+    }
+
+    return BookingGuideAssignmentItem.fromJson(
+      Map<String, dynamic>.from(assignment),
+    );
+  }
+
+  Future<BookingGuideAssignmentItem> assignGuideToBooking({
+    required int bookingId,
+    required int guideUserId,
+    String? assignmentNotes,
+  }) async {
+    final notes = assignmentNotes?.trim();
+
+    final data = await _request(
+      'POST',
+      '/operator/bookings/$bookingId/guide-assignment',
+      body: {
+        'guide_user_id': guideUserId,
+        if (notes != null && notes.isNotEmpty) 'assignment_notes': notes,
+      },
+    );
+
+    return _assignmentFromResponse(data);
+  }
+
+  Future<BookingGuideAssignmentItem> cancelBookingGuideAssignment({
+    required int bookingId,
+    required int assignmentId,
+  }) async {
+    final data = await _request(
+      'POST',
+      '/operator/bookings/$bookingId/guide-assignment/$assignmentId/cancel',
+    );
+
+    return _assignmentFromResponse(data);
+  }
+
+  // ============================================================
+  // GUIDE -> TEAM ASSIGNMENTS
+  // ============================================================
+
+  Future<List<BookingGuideAssignmentItem>> fetchGuideTeamAssignments() async {
+    final data = await _request('GET', '/guide/team-assignments');
+
+    return _maps(
+      data['assignments'],
+    ).map(BookingGuideAssignmentItem.fromJson).toList();
+  }
+
+  Future<BookingGuideAssignmentItem> fetchGuideTeamAssignment(
+    int assignmentId,
+  ) async {
+    final data = await _request('GET', '/guide/team-assignments/$assignmentId');
+
+    return _assignmentFromResponse(data);
+  }
+
+  Future<BookingGuideAssignmentItem> acceptGuideTeamAssignment(
+    int assignmentId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/guide/team-assignments/$assignmentId/accept',
+    );
+
+    return _assignmentFromResponse(data);
+  }
+
+  Future<BookingGuideAssignmentItem> declineGuideTeamAssignment(
+    int assignmentId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/guide/team-assignments/$assignmentId/decline',
+    );
+
+    return _assignmentFromResponse(data);
+  }
+
+  // ============================================================
   // RESPONSE PARSER
   // ============================================================
 
@@ -206,6 +317,20 @@ class BookingService {
     }
 
     return BookingItem.fromJson(Map<String, dynamic>.from(booking));
+  }
+
+  BookingGuideAssignmentItem _assignmentFromResponse(
+    Map<String, dynamic> data,
+  ) {
+    final assignment = data['assignment'];
+
+    if (assignment is! Map) {
+      throw const ApiException('Guide assignment response was incomplete.');
+    }
+
+    return BookingGuideAssignmentItem.fromJson(
+      Map<String, dynamic>.from(assignment),
+    );
   }
 
   // ============================================================
@@ -774,6 +899,246 @@ class OperatorBookingSummary extends ProviderBookingSummary {
       travellers: summary.travellers,
       bookingValue: summary.bookingValue,
       currency: summary.currency,
+    );
+  }
+}
+
+// ==================================================================
+// TEAM ASSIGNMENT MODELS
+// ==================================================================
+
+class EligibleTeamGuide {
+  const EligibleTeamGuide({
+    required this.id,
+    required this.name,
+    required this.role,
+    required this.profilePhoto,
+    required this.country,
+    required this.languages,
+    required this.yearsExperience,
+    required this.verificationStatus,
+  });
+
+  final int id;
+  final String name;
+  final String role;
+  final String profilePhoto;
+  final String country;
+  final List<String> languages;
+  final int yearsExperience;
+  final String verificationStatus;
+
+  bool get isVerified => verificationStatus == 'verified';
+
+  factory EligibleTeamGuide.fromJson(Map<String, dynamic> json) {
+    return EligibleTeamGuide(
+      id: _int(json['id']),
+      name: json['name']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      profilePhoto: json['profile_photo']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      languages: _stringList(json['languages']),
+      yearsExperience: _int(json['years_experience']),
+      verificationStatus: json['verification_status']?.toString() ?? 'pending',
+    );
+  }
+}
+
+class BookingGuideAssignmentItem {
+  const BookingGuideAssignmentItem({
+    required this.id,
+    required this.bookingId,
+    required this.operatorUserId,
+    required this.guideUserId,
+    required this.status,
+    this.assignmentNotes,
+    this.assignedAt,
+    this.respondedAt,
+    this.cancelledAt,
+    this.operator,
+    this.guide,
+    this.booking,
+  });
+
+  final int id;
+  final int bookingId;
+  final int operatorUserId;
+  final int guideUserId;
+  final String status;
+  final String? assignmentNotes;
+  final String? assignedAt;
+  final String? respondedAt;
+  final String? cancelledAt;
+  final TeamAssignmentOperator? operator;
+  final EligibleTeamGuide? guide;
+  final TeamAssignmentBooking? booking;
+
+  bool get isPending => status == 'pending';
+  bool get isAccepted => status == 'accepted';
+  bool get isDeclined => status == 'declined';
+  bool get isCancelled => status == 'cancelled';
+  bool get isOpen => isPending || isAccepted;
+
+  factory BookingGuideAssignmentItem.fromJson(Map<String, dynamic> json) {
+    final operatorData = json['operator'];
+    final guideData = json['guide'];
+    final bookingData = json['booking'];
+
+    return BookingGuideAssignmentItem(
+      id: _int(json['id']),
+      bookingId: _int(json['booking_id']),
+      operatorUserId: _int(json['operator_user_id']),
+      guideUserId: _int(json['guide_user_id']),
+      status: json['status']?.toString() ?? 'pending',
+      assignmentNotes: json['assignment_notes']?.toString(),
+      assignedAt: json['assigned_at']?.toString(),
+      respondedAt: json['responded_at']?.toString(),
+      cancelledAt: json['cancelled_at']?.toString(),
+      operator:
+          operatorData is Map
+              ? TeamAssignmentOperator.fromJson(
+                Map<String, dynamic>.from(operatorData),
+              )
+              : null,
+      guide:
+          guideData is Map
+              ? EligibleTeamGuide.fromJson(Map<String, dynamic>.from(guideData))
+              : null,
+      booking:
+          bookingData is Map
+              ? TeamAssignmentBooking.fromJson(
+                Map<String, dynamic>.from(bookingData),
+              )
+              : null,
+    );
+  }
+}
+
+class TeamAssignmentOperator {
+  const TeamAssignmentOperator({
+    required this.id,
+    required this.name,
+    required this.profilePhoto,
+    required this.country,
+  });
+
+  final int id;
+  final String name;
+  final String profilePhoto;
+  final String country;
+
+  factory TeamAssignmentOperator.fromJson(Map<String, dynamic> json) {
+    return TeamAssignmentOperator(
+      id: _int(json['id']),
+      name: json['name']?.toString() ?? '',
+      profilePhoto: json['profile_photo']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+    );
+  }
+}
+
+class TeamAssignmentBooking {
+  const TeamAssignmentBooking({
+    required this.id,
+    required this.reference,
+    required this.title,
+    required this.travellers,
+    required this.status,
+    required this.paymentStatus,
+    required this.currency,
+    this.startDate,
+    this.endDate,
+    this.tourist,
+    this.safariRequest,
+  });
+
+  final int id;
+  final String reference;
+  final String title;
+  final String? startDate;
+  final String? endDate;
+  final int travellers;
+  final String status;
+  final String paymentStatus;
+  final String currency;
+  final TeamAssignmentTourist? tourist;
+  final TeamAssignmentSafariRequest? safariRequest;
+
+  factory TeamAssignmentBooking.fromJson(Map<String, dynamic> json) {
+    final touristData = json['tourist'];
+    final safariRequestData = json['safari_request'];
+
+    return TeamAssignmentBooking(
+      id: _int(json['id']),
+      reference: json['reference']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      startDate: json['start_date']?.toString(),
+      endDate: json['end_date']?.toString(),
+      travellers: _int(json['travellers'], fallback: 1),
+      status: json['status']?.toString() ?? '',
+      paymentStatus: json['payment_status']?.toString() ?? '',
+      currency: json['currency']?.toString() ?? 'USD',
+      tourist:
+          touristData is Map
+              ? TeamAssignmentTourist.fromJson(
+                Map<String, dynamic>.from(touristData),
+              )
+              : null,
+      safariRequest:
+          safariRequestData is Map
+              ? TeamAssignmentSafariRequest.fromJson(
+                Map<String, dynamic>.from(safariRequestData),
+              )
+              : null,
+    );
+  }
+}
+
+class TeamAssignmentTourist {
+  const TeamAssignmentTourist({
+    required this.id,
+    required this.name,
+    required this.profilePhoto,
+  });
+
+  final int id;
+  final String name;
+  final String profilePhoto;
+
+  factory TeamAssignmentTourist.fromJson(Map<String, dynamic> json) {
+    return TeamAssignmentTourist(
+      id: _int(json['id']),
+      name: json['name']?.toString() ?? '',
+      profilePhoto: json['profile_photo']?.toString() ?? '',
+    );
+  }
+}
+
+class TeamAssignmentSafariRequest {
+  const TeamAssignmentSafariRequest({
+    required this.id,
+    required this.days,
+    required this.activities,
+    required this.destinations,
+  });
+
+  final int id;
+  final int? days;
+  final List<BookingReferenceItem> activities;
+  final List<BookingReferenceItem> destinations;
+
+  factory TeamAssignmentSafariRequest.fromJson(Map<String, dynamic> json) {
+    return TeamAssignmentSafariRequest(
+      id: _int(json['id']),
+      days: json['days'] == null ? null : _int(json['days']),
+      activities:
+          _mapList(
+            json['activities'],
+          ).map(BookingReferenceItem.fromJson).toList(),
+      destinations:
+          _mapList(
+            json['destinations'],
+          ).map(BookingReferenceItem.fromJson).toList(),
     );
   }
 }

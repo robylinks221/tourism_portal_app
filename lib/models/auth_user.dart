@@ -19,8 +19,8 @@ class AuthUser {
       name: json['name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       role: json['role']?.toString() ?? '',
-      profileCompleted: json['profile_completed'] == true ||
-          json['profile_completed'] == 1,
+      profileCompleted:
+          json['profile_completed'] == true || json['profile_completed'] == 1,
     );
   }
 

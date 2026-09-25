@@ -41,33 +41,19 @@ abstract class TourismCountries {
     currencySymbol: 'TZS',
   );
 
-  static const all = <SupportedCountry>[
-    uganda,
-    rwanda,
-    kenya,
-    tanzania,
-  ];
+  static const all = <SupportedCountry>[uganda, rwanda, kenya, tanzania];
 
-  static const names = <String>[
-    'Uganda',
-    'Rwanda',
-    'Kenya',
-    'Tanzania',
-  ];
+  static const names = <String>['Uganda', 'Rwanda', 'Kenya', 'Tanzania'];
 
-  static SupportedCountry? byName(
-      String? name,
-      ) {
+  static SupportedCountry? byName(String? name) {
     if (name == null) {
       return null;
     }
 
-    final normalized =
-    name.trim().toLowerCase();
+    final normalized = name.trim().toLowerCase();
 
     for (final country in all) {
-      if (country.name.toLowerCase() ==
-          normalized) {
+      if (country.name.toLowerCase() == normalized) {
         return country;
       }
     }

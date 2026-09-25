@@ -70,9 +70,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_acceptTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please accept the Terms and Privacy Policy.',
-          ),
+          content: Text('Please accept the Terms and Privacy Policy.'),
         ),
       );
 
@@ -98,18 +96,16 @@ class _RegisterPageState extends State<RegisterPage> {
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/complete-profile',
-            (route) => false,
+        (route) => false,
       );
     } on ApiException catch (error) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) {
         return;
@@ -117,9 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Unable to create the account. Please try again.',
-          ),
+          content: Text('Unable to create the account. Please try again.'),
         ),
       );
     } finally {
@@ -152,62 +146,38 @@ class _RegisterPageState extends State<RegisterPage> {
       filled: true,
       fillColor: fieldBackground,
 
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 17,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
 
       prefixIcon: Padding(
-        padding: const EdgeInsets.only(
-          left: 5,
-          right: 3,
-        ),
-        child: Icon(
-          icon,
-          color: primary,
-          size: 21,
-        ),
+        padding: const EdgeInsets.only(left: 5, right: 3),
+        child: Icon(icon, color: primary, size: 21),
       ),
 
       suffixIcon: suffix,
 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: borderColor,
-        ),
+        borderSide: const BorderSide(color: borderColor),
       ),
 
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: borderColor,
-          width: 1,
-        ),
+        borderSide: const BorderSide(color: borderColor, width: 1),
       ),
 
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: primary,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: primary, width: 1.5),
       ),
 
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: secondary,
-          width: 1,
-        ),
+        borderSide: const BorderSide(color: secondary, width: 1),
       ),
 
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: const BorderSide(
-          color: secondary,
-          width: 1.5,
-        ),
+        borderSide: const BorderSide(color: secondary, width: 1.5),
       ),
     );
   }
@@ -223,28 +193,20 @@ class _RegisterPageState extends State<RegisterPage> {
 
       body: SafeArea(
         child: SingleChildScrollView(
-          keyboardDismissBehavior:
-          ScrollViewKeyboardDismissBehavior.onDrag,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
 
-          padding: const EdgeInsets.fromLTRB(
-            24,
-            14,
-            24,
-            34,
-          ),
+          padding: const EdgeInsets.fromLTRB(24, 14, 24, 34),
 
           child: Form(
             key: _formKey,
 
             child: Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
 
               children: [
                 // ==================================================
                 // TOP BAR
                 // ==================================================
-
                 Row(
                   children: [
                     _BackButton(
@@ -261,10 +223,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       height: 4,
                       decoration: BoxDecoration(
                         color: secondary,
-                        borderRadius:
-                        BorderRadius.circular(
-                          20,
-                        ),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   ],
@@ -275,7 +234,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 // ==================================================
                 // HEADING
                 // ==================================================
-
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.center,
@@ -294,15 +252,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
 
                       children: [
-                        TextSpan(
-                          text: 'Create your ',
-                        ),
+                        TextSpan(text: 'Create your '),
 
                         TextSpan(
                           text: 'account',
-                          style: TextStyle(
-                            color: secondary,
-                          ),
+                          style: TextStyle(color: secondary),
                         ),
                       ],
                     ),
@@ -312,9 +266,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 9),
 
                 const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     'Join the Tourism Portal and start planning your next experience.',
                     textAlign: TextAlign.center,
@@ -332,84 +284,52 @@ class _RegisterPageState extends State<RegisterPage> {
                 // ==================================================
                 // FORM CARD
                 // ==================================================
-
                 Container(
-                  padding: const EdgeInsets.fromLTRB(
-                    18,
-                    22,
-                    18,
-                    22,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
 
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(
-                      0.72,
-                    ),
+                    color: Colors.white.withOpacity(0.72),
 
-                    borderRadius:
-                    BorderRadius.circular(
-                      28,
-                    ),
+                    borderRadius: BorderRadius.circular(28),
 
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.white, width: 1),
 
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(
-                          0.045,
-                        ),
+                        color: Colors.black.withOpacity(0.045),
                         blurRadius: 24,
-                        offset: const Offset(
-                          0,
-                          10,
-                        ),
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
 
                   child: Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
 
                     children: [
                       // ============================================
                       // FULL NAME
                       // ============================================
-
-                      const _FieldLabel(
-                        label: 'Full Name',
-                      ),
+                      const _FieldLabel(label: 'Full Name'),
 
                       const SizedBox(height: 8),
 
                       TextFormField(
-                        controller:
-                        _fullNameController,
+                        controller: _fullNameController,
 
-                        textCapitalization:
-                        TextCapitalization.words,
+                        textCapitalization: TextCapitalization.words,
 
-                        textInputAction:
-                        TextInputAction.next,
+                        textInputAction: TextInputAction.next,
 
-                        autofillHints: const [
-                          AutofillHints.name,
-                        ],
+                        autofillHints: const [AutofillHints.name],
 
-                        decoration:
-                        _fieldDecoration(
-                          hint:
-                          'Enter your full name',
-                          icon: Icons
-                              .person_outline_rounded,
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your full name',
+                          icon: Icons.person_outline_rounded,
                         ),
 
                         validator: (value) {
-                          final name =
-                              value?.trim() ?? '';
+                          final name = value?.trim() ?? '';
 
                           if (name.isEmpty) {
                             return 'Please enter your full name.';
@@ -428,46 +348,32 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // EMAIL
                       // ============================================
-
-                      const _FieldLabel(
-                        label: 'Email Address',
-                      ),
+                      const _FieldLabel(label: 'Email Address'),
 
                       const SizedBox(height: 8),
 
                       TextFormField(
-                        controller:
-                        _emailController,
+                        controller: _emailController,
 
-                        keyboardType:
-                        TextInputType
-                            .emailAddress,
+                        keyboardType: TextInputType.emailAddress,
 
-                        textInputAction:
-                        TextInputAction.next,
+                        textInputAction: TextInputAction.next,
 
-                        autofillHints: const [
-                          AutofillHints.email,
-                        ],
+                        autofillHints: const [AutofillHints.email],
 
-                        decoration:
-                        _fieldDecoration(
-                          hint:
-                          'Enter your email',
-                          icon:
-                          Icons.email_outlined,
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your email',
+                          icon: Icons.email_outlined,
                         ),
 
                         validator: (value) {
-                          final email =
-                              value?.trim() ?? '';
+                          final email = value?.trim() ?? '';
 
                           if (email.isEmpty) {
                             return 'Please enter your email address.';
                           }
 
-                          if (!email.contains('@') ||
-                              !email.contains('.')) {
+                          if (!email.contains('@') || !email.contains('.')) {
                             return 'Please enter a valid email address.';
                           }
 
@@ -480,10 +386,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // ACCOUNT TYPE
                       // ============================================
-
-                      const _FieldLabel(
-                        label: 'Account Type',
-                      ),
+                      const _FieldLabel(label: 'Account Type'),
 
                       const SizedBox(height: 8),
 
@@ -492,41 +395,29 @@ class _RegisterPageState extends State<RegisterPage> {
                         isExpanded: true,
 
                         icon: const Icon(
-                          Icons
-                              .keyboard_arrow_down_rounded,
+                          Icons.keyboard_arrow_down_rounded,
                           color: primary,
                         ),
 
-                        decoration:
-                        _fieldDecoration(
-                          hint:
-                          'Select your account type',
-                          icon:
-                          Icons.badge_outlined,
+                        decoration: _fieldDecoration(
+                          hint: 'Select your account type',
+                          icon: Icons.badge_outlined,
                         ),
 
                         items: const [
                           DropdownMenuItem(
                             value: 'tourist',
-                            child: Text(
-                              'Tourist',
-                            ),
+                            child: Text('Tourist'),
                           ),
 
                           DropdownMenuItem(
-                            value:
-                            'tourist_guide',
-                            child: Text(
-                              'Tourist Guide',
-                            ),
+                            value: 'tourist_guide',
+                            child: Text('Tourist Guide'),
                           ),
 
                           DropdownMenuItem(
-                            value:
-                            'tour_operator',
-                            child: Text(
-                              'Tour Operator',
-                            ),
+                            value: 'tour_operator',
+                            child: Text('Tour Operator'),
                           ),
                         ],
 
@@ -537,8 +428,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
 
                         validator: (value) {
-                          if (value == null ||
-                              value.isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return 'Please select your account type.';
                           }
 
@@ -549,10 +439,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       const SizedBox(height: 7),
 
                       const Padding(
-                        padding:
-                        EdgeInsets.only(
-                          left: 4,
-                        ),
+                        padding: EdgeInsets.only(left: 4),
                         child: Text(
                           'Administrator accounts are created by the platform.',
                           style: TextStyle(
@@ -568,49 +455,35 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // PASSWORD
                       // ============================================
-
-                      const _FieldLabel(
-                        label: 'Password',
-                      ),
+                      const _FieldLabel(label: 'Password'),
 
                       const SizedBox(height: 8),
 
                       TextFormField(
-                        controller:
-                        _passwordController,
+                        controller: _passwordController,
 
-                        obscureText:
-                        _hidePassword,
+                        obscureText: _hidePassword,
 
-                        textInputAction:
-                        TextInputAction.next,
+                        textInputAction: TextInputAction.next,
 
-                        autofillHints: const [
-                          AutofillHints.newPassword,
-                        ],
+                        autofillHints: const [AutofillHints.newPassword],
 
-                        decoration:
-                        _fieldDecoration(
-                          hint:
-                          'Create a password',
+                        decoration: _fieldDecoration(
+                          hint: 'Create a password',
 
-                          icon:
-                          Icons.lock_outline_rounded,
+                          icon: Icons.lock_outline_rounded,
 
                           suffix: IconButton(
                             onPressed: () {
                               setState(() {
-                                _hidePassword =
-                                !_hidePassword;
+                                _hidePassword = !_hidePassword;
                               });
                             },
 
                             icon: Icon(
                               _hidePassword
-                                  ? Icons
-                                  .visibility_outlined
-                                  : Icons
-                                  .visibility_off_outlined,
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
 
                               color: mutedText,
                               size: 21,
@@ -619,8 +492,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
 
                         validator: (value) {
-                          if (value == null ||
-                              value.isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return 'Please create a password.';
                           }
 
@@ -637,50 +509,37 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // CONFIRM PASSWORD
                       // ============================================
-
-                      const _FieldLabel(
-                        label:
-                        'Confirm Password',
-                      ),
+                      const _FieldLabel(label: 'Confirm Password'),
 
                       const SizedBox(height: 8),
 
                       TextFormField(
-                        controller:
-                        _confirmPasswordController,
+                        controller: _confirmPasswordController,
 
-                        obscureText:
-                        _hideConfirmPassword,
+                        obscureText: _hideConfirmPassword,
 
-                        textInputAction:
-                        TextInputAction.done,
+                        textInputAction: TextInputAction.done,
 
                         onFieldSubmitted: (_) {
                           _submitRegistration();
                         },
 
-                        decoration:
-                        _fieldDecoration(
-                          hint:
-                          'Enter your password again',
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your password again',
 
-                          icon: Icons
-                              .verified_user_outlined,
+                          icon: Icons.verified_user_outlined,
 
                           suffix: IconButton(
                             onPressed: () {
                               setState(() {
-                                _hideConfirmPassword =
-                                !_hideConfirmPassword;
+                                _hideConfirmPassword = !_hideConfirmPassword;
                               });
                             },
 
                             icon: Icon(
                               _hideConfirmPassword
-                                  ? Icons
-                                  .visibility_outlined
-                                  : Icons
-                                  .visibility_off_outlined,
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
 
                               color: mutedText,
                               size: 21,
@@ -689,14 +548,11 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
 
                         validator: (value) {
-                          if (value == null ||
-                              value.isEmpty) {
+                          if (value == null || value.isEmpty) {
                             return 'Please confirm your password.';
                           }
 
-                          if (value !=
-                              _passwordController
-                                  .text) {
+                          if (value != _passwordController.text) {
                             return 'Passwords do not match.';
                           }
 
@@ -709,31 +565,20 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // TERMS
                       // ============================================
-
                       InkWell(
                         onTap: () {
                           setState(() {
-                            _acceptTerms =
-                            !_acceptTerms;
+                            _acceptTerms = !_acceptTerms;
                           });
                         },
 
-                        borderRadius:
-                        BorderRadius.circular(
-                          12,
-                        ),
+                        borderRadius: BorderRadius.circular(12),
 
                         child: Padding(
-                          padding:
-                          const EdgeInsets
-                              .symmetric(
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
 
                           child: Row(
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
 
                             children: [
                               SizedBox(
@@ -741,62 +586,40 @@ class _RegisterPageState extends State<RegisterPage> {
                                 height: 24,
 
                                 child: Checkbox(
-                                  value:
-                                  _acceptTerms,
+                                  value: _acceptTerms,
 
                                   onChanged: (value) {
                                     setState(() {
-                                      _acceptTerms =
-                                          value ??
-                                              false;
+                                      _acceptTerms = value ?? false;
                                     });
                                   },
 
-                                  activeColor:
-                                  primary,
+                                  activeColor: primary,
 
-                                  checkColor:
-                                  Colors.white,
+                                  checkColor: Colors.white,
 
-                                  shape:
-                                  RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                      5,
-                                    ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
                                   ),
 
-                                  side:
-                                  const BorderSide(
-                                    color:
-                                    borderColor,
+                                  side: const BorderSide(
+                                    color: borderColor,
                                     width: 1.4,
                                   ),
                                 ),
                               ),
 
-                              const SizedBox(
-                                width: 11,
-                              ),
+                              const SizedBox(width: 11),
 
                               const Expanded(
                                 child: Padding(
-                                  padding:
-                                  EdgeInsets
-                                      .only(
-                                    top: 3,
-                                  ),
+                                  padding: EdgeInsets.only(top: 3),
                                   child: Text(
                                     'I agree to the Terms of Service and Privacy Policy.',
-                                    style:
-                                    TextStyle(
-                                      color:
-                                      mutedText,
-                                      fontSize:
-                                      11.5,
-                                      height:
-                                      1.45,
+                                    style: TextStyle(
+                                      color: mutedText,
+                                      fontSize: 11.5,
+                                      height: 1.45,
                                     ),
                                   ),
                                 ),
@@ -811,12 +634,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       // ============================================
                       // CREATE ACCOUNT BUTTON
                       // ============================================
-
                       _CreateAccountButton(
-                        loading:
-                        _isSubmitting,
-                        onPressed:
-                        _submitRegistration,
+                        loading: _isSubmitting,
+                        onPressed: _submitRegistration,
                       ),
                     ],
                   ),
@@ -825,49 +645,33 @@ class _RegisterPageState extends State<RegisterPage> {
                 // ==================================================
                 // LOGIN
                 // ==================================================
-
                 const SizedBox(height: 18),
 
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
 
                   children: [
                     const Text(
                       'Already have an account?',
-                      style: TextStyle(
-                        color: mutedText,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: mutedText, fontSize: 13),
                     ),
 
                     TextButton(
                       onPressed: () {
-                        Navigator
-                            .pushReplacementNamed(
-                          context,
-                          '/login',
-                        );
+                        Navigator.pushReplacementNamed(context, '/login');
                       },
 
-                      style:
-                      TextButton.styleFrom(
-                        foregroundColor:
-                        secondary,
+                      style: TextButton.styleFrom(
+                        foregroundColor: secondary,
 
-                        padding:
-                        const EdgeInsets
-                            .symmetric(
-                          horizontal: 7,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 7),
                       ),
 
                       child: const Text(
                         'Sign In',
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight:
-                          FontWeight.w800,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -889,9 +693,7 @@ class _RegisterPageState extends State<RegisterPage> {
 // ================================================================
 
 class _FieldLabel extends StatelessWidget {
-  const _FieldLabel({
-    required this.label,
-  });
+  const _FieldLabel({required this.label});
 
   final String label;
 
@@ -913,9 +715,7 @@ class _FieldLabel extends StatelessWidget {
 // ================================================================
 
 class _BackButton extends StatelessWidget {
-  const _BackButton({
-    required this.onPressed,
-  });
+  const _BackButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
@@ -927,8 +727,7 @@ class _BackButton extends StatelessWidget {
 
       child: InkWell(
         onTap: onPressed,
-        customBorder:
-        const CircleBorder(),
+        customBorder: const CircleBorder(),
 
         child: Container(
           width: 45,
@@ -937,12 +736,7 @@ class _BackButton extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
 
-            border: Border.all(
-              color:
-              const Color(
-                0xFFD8D2C8,
-              ),
-            ),
+            border: Border.all(color: const Color(0xFFD8D2C8)),
           ),
 
           child: const Icon(
@@ -960,12 +754,8 @@ class _BackButton extends StatelessWidget {
 // CREATE ACCOUNT BUTTON
 // ================================================================
 
-class _CreateAccountButton
-    extends StatelessWidget {
-  const _CreateAccountButton({
-    required this.loading,
-    required this.onPressed,
-  });
+class _CreateAccountButton extends StatelessWidget {
+  const _CreateAccountButton({required this.loading, required this.onPressed});
 
   final bool loading;
   final VoidCallback onPressed;
@@ -981,30 +771,17 @@ class _CreateAccountButton
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF165B5D),
-              Color(0xFF0A3D3F),
-            ],
+            colors: [Color(0xFF165B5D), Color(0xFF0A3D3F)],
           ),
 
           // Full pill radius
-          borderRadius:
-          BorderRadius.circular(
-            100,
-          ),
+          borderRadius: BorderRadius.circular(100),
 
           boxShadow: [
             BoxShadow(
-              color:
-              Colors.black.withOpacity(
-                0.14,
-              ),
+              color: Colors.black.withOpacity(0.14),
               blurRadius: 10,
-              offset:
-              const Offset(
-                0,
-                4,
-              ),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1012,44 +789,27 @@ class _CreateAccountButton
         child: Material(
           color: Colors.transparent,
 
-          borderRadius:
-          BorderRadius.circular(
-            100,
-          ),
+          borderRadius: BorderRadius.circular(100),
 
           child: InkWell(
-            onTap:
-            loading ? null : onPressed,
+            onTap: loading ? null : onPressed,
 
-            borderRadius:
-            BorderRadius.circular(
-              100,
-            ),
+            borderRadius: BorderRadius.circular(100),
 
             child: Padding(
-              padding:
-              const EdgeInsets.fromLTRB(
-                20,
-                5,
-                6,
-                5,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 5, 6, 5),
 
               child: Row(
                 children: [
                   Expanded(
                     child: Center(
                       child: Text(
-                        loading
-                            ? 'Creating Account...'
-                            : 'Create Account',
+                        loading ? 'Creating Account...' : 'Create Account',
 
-                        style:
-                        const TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
-                          fontWeight:
-                          FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -1059,38 +819,29 @@ class _CreateAccountButton
                     width: 40,
                     height: 40,
 
-                    decoration:
-                    const BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
-                      shape:
-                      BoxShape.circle,
+                      shape: BoxShape.circle,
                     ),
 
-                    alignment:
-                    Alignment.center,
+                    alignment: Alignment.center,
 
-                    child: loading
-                        ? const SizedBox(
-                      width: 16,
-                      height: 16,
+                    child:
+                        loading
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
 
-                      child:
-                      CircularProgressIndicator(
-                        strokeWidth:
-                        2,
-                        color:
-                        Color(
-                          0xFF165B5D,
-                        ),
-                      ),
-                    )
-                        : const Icon(
-                      Icons
-                          .arrow_forward_rounded,
-                      color:
-                      Colors.black,
-                      size: 19,
-                    ),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF165B5D),
+                              ),
+                            )
+                            : const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.black,
+                              size: 19,
+                            ),
                   ),
                 ],
               ),

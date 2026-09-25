@@ -18,10 +18,7 @@ class CommunityPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text(
             'Connect',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w300,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),
           ),
           bottom: const TabBar(
             tabs: [
@@ -30,9 +27,7 @@ class CommunityPage extends StatelessWidget {
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [_PeopleTab(), _ConversationsTab()],
-        ),
+        body: const TabBarView(children: [_PeopleTab(), _ConversationsTab()]),
       ),
     );
   }
@@ -61,14 +56,13 @@ class _PeopleTabState extends State<_PeopleTab> {
 
   Future<void> _message(CommunityMember member) async {
     try {
-      final conversation =
-          await CommunityService.instance.startConversation(member.id);
+      final conversation = await CommunityService.instance.startConversation(
+        member.id,
+      );
       if (!mounted) return;
       await Navigator.push<void>(
         context,
-        MaterialPageRoute(
-          builder: (_) => ChatPage(conversation: conversation),
-        ),
+        MaterialPageRoute(builder: (_) => ChatPage(conversation: conversation)),
       );
     } on ApiException catch (error) {
       if (mounted) _showError(error.message);
@@ -84,62 +78,69 @@ class _PeopleTabState extends State<_PeopleTab> {
     );
     final shouldSave = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            isProfessional
-                ? 'Rate ${member.name} professionally'
-                : 'Rate ${member.name}',
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    final value = index + 1;
-                    return IconButton(
-                      tooltip: '$value star${value == 1 ? '' : 's'}',
-                      onPressed: () => setDialogState(() => stars = value),
-                      icon: Icon(
-                        value <= stars ? Icons.star_rounded : Icons.star_border,
-                        color: Colors.amber.shade700,
-                        size: 32,
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reviewController,
-                  minLines: 3,
-                  maxLines: 5,
-                  maxLength: 1000,
-                  decoration: InputDecoration(
-                    labelText: isProfessional
-                        ? 'Professional feedback (optional)'
-                        : 'Review (optional)',
-                    hintText: isProfessional
-                        ? 'Share how the guide worked with your guests'
-                        : 'Share your experience',
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: Text(
+                    isProfessional
+                        ? 'Rate ${member.name} professionally'
+                        : 'Rate ${member.name}',
                   ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            final value = index + 1;
+                            return IconButton(
+                              tooltip: '$value star${value == 1 ? '' : 's'}',
+                              onPressed:
+                                  () => setDialogState(() => stars = value),
+                              icon: Icon(
+                                value <= stars
+                                    ? Icons.star_rounded
+                                    : Icons.star_border,
+                                color: Colors.amber.shade700,
+                                size: 32,
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: reviewController,
+                          minLines: 3,
+                          maxLines: 5,
+                          maxLength: 1000,
+                          decoration: InputDecoration(
+                            labelText:
+                                isProfessional
+                                    ? 'Professional feedback (optional)'
+                                    : 'Review (optional)',
+                            hintText:
+                                isProfessional
+                                    ? 'Share how the guide worked with your guests'
+                                    : 'Share your experience',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('Save rating'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Save rating'),
-            ),
-          ],
-        ),
-      ),
     );
     if (shouldSave != true) {
       reviewController.dispose();
@@ -170,7 +171,9 @@ class _PeopleTabState extends State<_PeopleTab> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -191,9 +194,10 @@ class _PeopleTabState extends State<_PeopleTab> {
           );
         }
         final members = snapshot.data ?? const [];
-        final visible = _filter == 'all'
-            ? members
-            : members.where((member) => member.role == _filter).toList();
+        final visible =
+            _filter == 'all'
+                ? members
+                : members.where((member) => member.role == _filter).toList();
         return RefreshIndicator(
           onRefresh: () async {
             _reload();
@@ -206,8 +210,8 @@ class _PeopleTabState extends State<_PeopleTab> {
                 isTourist
                     ? 'Find guides and operators, start a chat, or leave a rating.'
                     : isOperator
-                        ? 'Find guides, share professional feedback, or start a private chat.'
-                        : 'Find people in the tourism community and start a private chat.',
+                    ? 'Find guides, share professional feedback, or start a private chat.'
+                    : 'Find people in the tourism community and start a private chat.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               if (!isTourist) ...[
@@ -248,7 +252,8 @@ class _PeopleTabState extends State<_PeopleTab> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _MemberCard(
                       member: member,
-                      canRate: (isTourist &&
+                      canRate:
+                          (isTourist &&
                               (member.role == 'tourist_guide' ||
                                   member.role == 'tour_operator')) ||
                           (isOperator && member.role == 'tourist_guide'),
@@ -297,9 +302,10 @@ class _MyRatingsSummaryCardState extends State<_MyRatingsSummaryCard> {
               leading: const Icon(Icons.star_outline_rounded),
               title: const Text('My ratings could not be loaded'),
               trailing: IconButton(
-                onPressed: () => setState(() {
-                  _summary = CommunityService.instance.fetchMyRatings();
-                }),
+                onPressed:
+                    () => setState(() {
+                      _summary = CommunityService.instance.fetchMyRatings();
+                    }),
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ),
@@ -308,10 +314,13 @@ class _MyRatingsSummaryCardState extends State<_MyRatingsSummaryCard> {
         final summary = snapshot.data!;
         return Card(
           child: ListTile(
-            onTap: () => Navigator.push<void>(
-              context,
-              MaterialPageRoute(builder: (_) => const ReceivedRatingsPage()),
-            ),
+            onTap:
+                () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ReceivedRatingsPage(),
+                  ),
+                ),
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
               child: Icon(
@@ -358,10 +367,7 @@ class _ReceivedRatingsPageState extends State<ReceivedRatingsPage> {
       appBar: AppBar(
         title: const Text(
           'Ratings & Reviews',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w300,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),
         ),
       ),
       body: FutureBuilder<RatingSummary>(
@@ -389,18 +395,16 @@ class _ReceivedRatingsPageState extends State<ReceivedRatingsPage> {
                 const SizedBox(height: 18),
                 Text(
                   'Reviews',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w300,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w300),
                 ),
                 const SizedBox(height: 10),
                 if (summary.ratings.isEmpty)
                   const Card(
                     child: Padding(
                       padding: EdgeInsets.all(24),
-                      child: Center(
-                        child: Text('No one has rated you yet.'),
-                      ),
+                      child: Center(child: Text('No one has rated you yet.')),
                     ),
                   )
                 else
@@ -641,10 +645,7 @@ class _MemberCard extends StatelessWidget {
                       ),
                       Text(member.roleLabel),
                       if (member.location.isNotEmpty)
-                        Text(
-                          member.location,
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        Text(member.location, style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
@@ -700,8 +701,8 @@ class _MemberCard extends StatelessWidget {
                                 ? 'Rate guide'
                                 : 'Rate'
                             : isProfessionalRating
-                                ? 'Edit guide rating'
-                                : 'Edit rating',
+                            ? 'Edit guide rating'
+                            : 'Edit rating',
                       ),
                     ),
                   ),
@@ -764,54 +765,56 @@ class _ConversationsTabState extends State<_ConversationsTab> {
             _reload();
             await _conversations;
           },
-          child: conversations.isEmpty
-              ? ListView(
-                  children: const [
-                    SizedBox(height: 120),
-                    Icon(Icons.forum_outlined, size: 64),
-                    SizedBox(height: 14),
-                    Center(child: Text('No conversations yet.')),
-                    SizedBox(height: 6),
-                    Center(child: Text('Open People to start a chat.')),
-                  ],
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: conversations.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final conversation = conversations[index];
-                    return ListTile(
-                      onTap: () => _open(conversation),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 8,
-                      ),
-                      leading: _ProfileAvatar(
-                        name: conversation.participant.name,
-                        imageUrl: conversation.participant.profilePhotoUrl,
-                        radius: 26,
-                      ),
-                      title: Text(
-                        conversation.participant.name,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: Text(
-                        conversation.latestMessage.isEmpty
-                            ? conversation.participant.roleLabel
-                            : conversation.latestMessage,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: conversation.unreadCount > 0
-                          ? Badge(
-                              label: Text('${conversation.unreadCount}'),
-                              child: const Icon(Icons.chat_bubble_rounded),
-                            )
-                          : const Icon(Icons.chevron_right_rounded),
-                    );
-                  },
-                ),
+          child:
+              conversations.isEmpty
+                  ? ListView(
+                    children: const [
+                      SizedBox(height: 120),
+                      Icon(Icons.forum_outlined, size: 64),
+                      SizedBox(height: 14),
+                      Center(child: Text('No conversations yet.')),
+                      SizedBox(height: 6),
+                      Center(child: Text('Open People to start a chat.')),
+                    ],
+                  )
+                  : ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: conversations.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final conversation = conversations[index];
+                      return ListTile(
+                        onTap: () => _open(conversation),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 8,
+                        ),
+                        leading: _ProfileAvatar(
+                          name: conversation.participant.name,
+                          imageUrl: conversation.participant.profilePhotoUrl,
+                          radius: 26,
+                        ),
+                        title: Text(
+                          conversation.participant.name,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          conversation.latestMessage.isEmpty
+                              ? conversation.participant.roleLabel
+                              : conversation.latestMessage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing:
+                            conversation.unreadCount > 0
+                                ? Badge(
+                                  label: Text('${conversation.unreadCount}'),
+                                  child: const Icon(Icons.chat_bubble_rounded),
+                                )
+                                : const Icon(Icons.chevron_right_rounded),
+                      );
+                    },
+                  ),
         );
       },
     );
@@ -864,7 +867,8 @@ class _ChatPageState extends State<ChatPage> {
         widget.conversation.id,
       );
       if (!mounted) return;
-      final changed = _messages.length != thread.messages.length ||
+      final changed =
+          _messages.length != thread.messages.length ||
           (_messages.isNotEmpty &&
               thread.messages.isNotEmpty &&
               _messages.last.id != thread.messages.last.id);
@@ -905,9 +909,9 @@ class _ChatPageState extends State<ChatPage> {
       _scrollToBottom();
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -962,17 +966,18 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null && _messages.isEmpty
+            child:
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null && _messages.isEmpty
                     ? _ErrorState(
-                        message: _error!,
-                        onRetry: () => _load(showLoading: true),
-                      )
+                      message: _error!,
+                      onRetry: () => _load(showLoading: true),
+                    )
                     : _MessageList(
-                        messages: _messages,
-                        controller: _scrollController,
-                      ),
+                      messages: _messages,
+                      controller: _scrollController,
+                    ),
           ),
           SafeArea(
             top: false,
@@ -987,12 +992,13 @@ class _ChatPageState extends State<ChatPage> {
                       minLines: 1,
                       maxLines: 5,
                       maxLength: 2000,
-                      buildCounter: (
-                        context, {
-                        required currentLength,
-                        required isFocused,
-                        required maxLength,
-                      }) => null,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            required maxLength,
+                          }) => null,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText: 'Write a message...',
@@ -1002,13 +1008,14 @@ class _ChatPageState extends State<ChatPage> {
                   const SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: _sending ? null : _send,
-                    icon: _sending
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send_rounded),
+                    icon:
+                        _sending
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.send_rounded),
                   ),
                 ],
               ),

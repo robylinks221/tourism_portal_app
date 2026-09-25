@@ -34,9 +34,14 @@ class OperatorTour {
     required this.destinationIds,
     required this.activityNames,
     required this.destinationNames,
+    this.countryNames = const [],
+    this.countryCount = 0,
+    this.isMultiCountry = false,
     this.moods = const [],
     this.moodIds = const [],
     this.itinerary = const [],
+    this.inclusions = const [],
+    this.exclusions = const [],
     this.operatorId = 0,
     this.providerRole = 'tour_operator',
     this.operatorName = '',
@@ -64,9 +69,14 @@ class OperatorTour {
   final List<int> destinationIds;
   final List<String> activityNames;
   final List<String> destinationNames;
+  final List<String> countryNames;
+  final int countryCount;
+  final bool isMultiCountry;
   final List<String> moods;
   final List<int> moodIds;
   final List<TourItineraryStop> itinerary;
+  final List<String> inclusions;
+  final List<String> exclusions;
   final int operatorId;
   final String providerRole;
   final String operatorName;
@@ -84,6 +94,12 @@ class OperatorTour {
   String get imageUrl => AuthService.storageUrl(image);
   String get operatorLogoUrl => AuthService.storageUrl(operatorLogo);
   bool get isGuideLed => providerRole == 'tourist_guide';
+
+  String get countryLabel {
+    if (countryNames.isEmpty) return '';
+    return countryNames.join(' • ');
+  }
+
   bool get isOperatorVerified =>
       operatorVerificationStatus == 'verified' && operatorVerifiedAt != null;
 
@@ -101,23 +117,27 @@ class OperatorTour {
       currency: json['currency']?.toString() ?? 'USD',
       isActive: _boolean(json['is_active']),
       activityIds: activities.map((item) => _integer(item['id'])).toList(),
-      destinationIds: destinations
-          .map((item) => _integer(item['id']))
-          .toList(),
-      activityNames: activities
-          .map((item) => item['name']?.toString() ?? '')
-          .where((name) => name.isNotEmpty)
-          .toList(),
-      destinationNames: destinations
-          .map((item) => item['name']?.toString() ?? '')
-          .where((name) => name.isNotEmpty)
-          .toList(),
+      destinationIds: destinations.map((item) => _integer(item['id'])).toList(),
+      activityNames:
+          activities
+              .map((item) => item['name']?.toString() ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList(),
+      destinationNames:
+          destinations
+              .map((item) => item['name']?.toString() ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList(),
+      countryNames: _strings(json['country_names']),
+      countryCount: _integer(json['country_count']),
+      isMultiCountry: _boolean(json['is_multi_country']),
       moods: _strings(json['moods']),
       moodIds: _integers(json['mood_ids']),
-      itinerary: _mapList(json['itinerary'])
-          .map(TourItineraryStop.fromJson)
-          .toList()
-        ..sort((first, second) => first.day.compareTo(second.day)),
+      itinerary:
+          _mapList(json['itinerary']).map(TourItineraryStop.fromJson).toList()
+            ..sort((first, second) => first.day.compareTo(second.day)),
+      inclusions: _strings(json['inclusions']),
+      exclusions: _strings(json['exclusions']),
       operatorId: _integer(json['operator_id']),
       providerRole: json['provider_role']?.toString() ?? 'tour_operator',
       operatorName: json['operator_name']?.toString() ?? '',
@@ -134,8 +154,9 @@ class OperatorTour {
       operatorVerifiedAt: DateTime.tryParse(
         json['operator_verified_at']?.toString() ?? '',
       ),
-      operatorResponseTimeMinutes:
-          _nullableInteger(json['operator_response_time_minutes']),
+      operatorResponseTimeMinutes: _nullableInteger(
+        json['operator_response_time_minutes'],
+      ),
       operatorYearsExperience: _integer(json['operator_years_experience']),
     );
   }
@@ -154,7 +175,11 @@ class CarHireVehicle {
     this.transmission,
     this.fuelType,
     this.description,
+    this.operatorId = 0,
     this.operatorName = '',
+    this.operatorLogo = '',
+    this.operatorJoinedAt,
+    this.operatorVerificationStatus = 'pending',
   });
 
   final int id;
@@ -168,9 +193,23 @@ class CarHireVehicle {
   final List<String> amenities;
   final String? description;
   final bool isAvailable;
+
+  final int operatorId;
   final String operatorName;
+  final String operatorLogo;
+  final DateTime? operatorJoinedAt;
+  final String operatorVerificationStatus;
 
   String get imageUrl => AuthService.storageUrl(image);
+
+  String get operatorLogoUrl =>
+      AuthService.storageUrl(operatorLogo);
+
+  bool get operatorIsVerified =>
+      operatorVerificationStatus
+          .trim()
+          .toLowerCase() ==
+      'verified';
 
   factory CarHireVehicle.fromJson(Map<String, dynamic> json) {
     return CarHireVehicle(
@@ -179,37 +218,97 @@ class CarHireVehicle {
       image: json['image']?.toString() ?? '',
       pricePerDay: _number(json['price_per_day']),
       currency: json['currency']?.toString() ?? 'USD',
-      seats: json['seats'] == null ? null : _integer(json['seats']),
+      seats:
+          json['seats'] == null ? null : _integer(json['seats']),
       transmission: json['transmission']?.toString(),
       fuelType: json['fuel_type']?.toString(),
       amenities: json['amenities'] is List
-          ? (json['amenities'] as List).map((item) => item.toString()).toList()
+          ? (json['amenities'] as List)
+              .map((item) => item.toString())
+              .toList()
           : const [],
       description: json['description']?.toString(),
       isAvailable: _boolean(json['is_available']),
+      operatorId: _integer(json['operator_id']),
       operatorName: json['operator_name']?.toString() ?? '',
+      operatorLogo: json['operator_logo']?.toString() ?? '',
+      operatorJoinedAt: DateTime.tryParse(
+        json['operator_joined_at']?.toString() ?? '',
+      ),
+      operatorVerificationStatus:
+          json['operator_verification_status']?.toString() ??
+              'pending',
+    );
+  }
+}
+
+class TourPublishingContext {
+  const TourPublishingContext({
+    required this.canCreate,
+    required this.status,
+    required this.title,
+    required this.message,
+    required this.activeAffiliationsCount,
+    required this.publicAffiliationsCount,
+    required this.privateAffiliationsCount,
+  });
+
+  final bool canCreate;
+  final String status;
+  final String title;
+  final String message;
+  final int activeAffiliationsCount;
+  final int publicAffiliationsCount;
+  final int privateAffiliationsCount;
+
+  bool get isIndependent => status == 'independent';
+  bool get hasPrivateAffiliation => privateAffiliationsCount > 0;
+  bool get hasPublicAffiliation => publicAffiliationsCount > 0;
+
+  factory TourPublishingContext.fromJson(Map<String, dynamic> json) {
+    return TourPublishingContext(
+      canCreate: _boolean(json['can_create']),
+      status: json['status']?.toString() ?? 'independent',
+      title: json['title']?.toString() ?? 'Independent guide publishing',
+      message: json['message']?.toString() ?? '',
+      activeAffiliationsCount: _integer(json['active_affiliations_count']),
+      publicAffiliationsCount: _integer(json['public_affiliations_count']),
+      privateAffiliationsCount: _integer(json['private_affiliations_count']),
     );
   }
 }
 
 class OperatorManagementData {
   const OperatorManagementData({
+    required this.tourPublishing,
     required this.carHireEnabled,
     required this.tours,
     required this.vehicles,
   });
 
+  final TourPublishingContext tourPublishing;
   final bool carHireEnabled;
   final List<OperatorTour> tours;
   final List<CarHireVehicle> vehicles;
 
   factory OperatorManagementData.fromJson(Map<String, dynamic> json) {
+    final publishing = json['tour_publishing'];
+
     return OperatorManagementData(
+      tourPublishing: TourPublishingContext.fromJson(
+        publishing is Map
+            ? Map<String, dynamic>.from(publishing)
+            : const <String, dynamic>{
+              'can_create': true,
+              'status': 'independent',
+              'title': 'Independent guide publishing',
+              'message': '',
+            },
+      ),
       carHireEnabled: _boolean(json['car_hire_enabled']),
       tours: _mapList(json['tours']).map(OperatorTour.fromJson).toList(),
-      vehicles: _mapList(json['vehicles'])
-          .map(CarHireVehicle.fromJson)
-          .toList(),
+      vehicles:
+          _mapList(json['vehicles']).map(CarHireVehicle.fromJson).toList(),
     );
   }
 }
@@ -229,8 +328,7 @@ int? _nullableInteger(dynamic value) {
   return text.isEmpty ? null : int.tryParse(text);
 }
 
-double _number(dynamic value) =>
-    double.tryParse(value?.toString() ?? '') ?? 0;
+double _number(dynamic value) => double.tryParse(value?.toString() ?? '') ?? 0;
 
 bool _boolean(dynamic value) => value == true || value == 1 || value == '1';
 

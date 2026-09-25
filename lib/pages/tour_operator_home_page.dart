@@ -7,27 +7,25 @@ import '../services/session_navigation.dart';
 import '../utils/text_case.dart';
 import '../widgets/catalog_home_sections.dart';
 import '../widgets/current_user_avatar.dart';
-import '../widgets/operator_offerings_sections.dart';
 import '../widgets/provider_discovery_sections.dart';
 
+import 'awards_pages.dart';
 import 'community_page.dart';
 import 'operator_booking_details_page.dart';
 import 'operator_manage_page.dart';
+import 'operator_guide_team_page.dart';
 import 'operator_safari_opportunities_page.dart';
+import 'provider_bookings_hub_page.dart';
 import '../theme/field_guide_theme.dart';
 
 class TourOperatorHomePage extends StatefulWidget {
-  const TourOperatorHomePage({
-    super.key,
-  });
+  const TourOperatorHomePage({super.key});
 
   @override
-  State<TourOperatorHomePage> createState() =>
-      _TourOperatorHomePageState();
+  State<TourOperatorHomePage> createState() => _TourOperatorHomePageState();
 }
 
-class _TourOperatorHomePageState
-    extends State<TourOperatorHomePage> {
+class _TourOperatorHomePageState extends State<TourOperatorHomePage> {
   int _selectedNavigationIndex = 0;
 
   int _selectedBookingFilter = 0;
@@ -40,8 +38,7 @@ class _TourOperatorHomePageState
 
   List<BookingItem> _bookings = [];
 
-  OperatorBookingSummary _summary =
-  const OperatorBookingSummary();
+  OperatorBookingSummary _summary = const OperatorBookingSummary();
 
   @override
   void initState() {
@@ -60,10 +57,8 @@ class _TourOperatorHomePageState
 
     try {
       final results = await Future.wait<dynamic>([
-        BookingService.instance
-            .fetchOperatorBookings(),
-        BookingService.instance
-            .fetchOperatorSummary(),
+        BookingService.instance.fetchOperatorBookings(),
+        BookingService.instance.fetchOperatorSummary(),
       ]);
 
       if (!mounted) {
@@ -71,11 +66,9 @@ class _TourOperatorHomePageState
       }
 
       setState(() {
-        _bookings =
-        results[0] as List<BookingItem>;
+        _bookings = results[0] as List<BookingItem>;
 
-        _summary =
-        results[1] as OperatorBookingSummary;
+        _summary = results[1] as OperatorBookingSummary;
 
         _loadingBookings = false;
       });
@@ -86,45 +79,48 @@ class _TourOperatorHomePageState
 
       setState(() {
         _loadingBookings = false;
-        _bookingError =
-            error.toString();
+        _bookingError = error.toString();
       });
     }
   }
 
-  void _showMessage(
-      String message,
-      ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _openBooking(
-      BookingItem booking,
-      ) async {
+  Future<void> _openBooking(BookingItem booking) async {
     await Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (_) =>
-            OperatorBookingDetailsPage(
-              booking: booking,
-            ),
+        builder: (_) => OperatorBookingDetailsPage(booking: booking),
       ),
     );
 
     await _loadBookingData();
   }
 
+  void _openAwards() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AwardsHomePage()),
+    );
+  }
+
   void _openSafariOpportunities() {
     Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (_) =>
-        const OperatorSafariOpportunitiesPage(),
+        builder: (_) => const OperatorSafariOpportunitiesPage(),
       ),
+    );
+  }
+
+  void _openGuideTeam() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const OperatorGuideTeamPage()),
     );
   }
 
@@ -134,27 +130,7 @@ class _TourOperatorHomePageState
     }
 
     if (_selectedNavigationIndex == 2) {
-      return _BookingsPage(
-        bookings: _bookings,
-        loading:
-        _loadingBookings,
-        error:
-        _bookingError,
-        selectedFilter:
-        _selectedBookingFilter,
-        onFilterSelected: (
-            index,
-            ) {
-          setState(() {
-            _selectedBookingFilter =
-                index;
-          });
-        },
-        onRefresh:
-        _loadBookingData,
-        onBookingPressed:
-        _openBooking,
-      );
+      return const ProviderBookingsHubPage();
     }
 
     if (_selectedNavigationIndex == 3) {
@@ -163,141 +139,88 @@ class _TourOperatorHomePageState
 
     if (_selectedNavigationIndex == 4) {
       return _OperatorProfilePage(
-        acceptingBookings:
-        _acceptingBookings,
-        onAvailabilityChanged: (
-            value,
-            ) {
+        acceptingBookings: _acceptingBookings,
+        onAvailabilityChanged: (value) {
           setState(() {
-            _acceptingBookings =
-                value;
+            _acceptingBookings = value;
           });
         },
-        onSafariOpportunities:
-        _openSafariOpportunities,
+        onSafariOpportunities: _openSafariOpportunities,
+        onGuideTeam: _openGuideTeam,
         onLogout: () {
-          signOutAndShowLogin(
-            context,
-          );
+          signOutAndShowLogin(context);
         },
-        onEditAccount: () =>
-            openEditAccount(
-              context,
-            ),
-        onDeleteAccount: () =>
-            confirmDeleteAccount(
-              context,
-            ),
+        onEditAccount: () => openEditAccount(context),
+        onDeleteAccount: () => confirmDeleteAccount(context),
       );
     }
 
     return _OperatorDashboard(
-      bookings:
-      _bookings,
-      summary:
-      _summary,
-      loadingBookings:
-      _loadingBookings,
-      bookingError:
-      _bookingError,
-      acceptingBookings:
-      _acceptingBookings,
-      onAvailabilityChanged: (
-          value,
-          ) {
+      bookings: _bookings,
+      summary: _summary,
+      loadingBookings: _loadingBookings,
+      bookingError: _bookingError,
+      acceptingBookings: _acceptingBookings,
+      onAvailabilityChanged: (value) {
         setState(() {
-          _acceptingBookings =
-              value;
+          _acceptingBookings = value;
         });
       },
       onNotificationPressed: () {
-        _showMessage(
-          'You have no new notifications.',
-        );
+        _showMessage('You have no new notifications.');
       },
       onViewBookingsPressed: () {
         setState(() {
-          _selectedNavigationIndex =
-          2;
+          _selectedNavigationIndex = 2;
         });
       },
       onManagePressed: () {
         setState(() {
-          _selectedNavigationIndex =
-          1;
+          _selectedNavigationIndex = 1;
         });
       },
-      onSafariOpportunitiesPressed:
-      _openSafariOpportunities,
-      onBookingPressed:
-      _openBooking,
-      onRefresh:
-      _loadBookingData,
+      onSafariOpportunitiesPressed: _openSafariOpportunities,
+      onAwardsPressed: _openAwards,
+      onBookingPressed: _openBooking,
+      onRefresh: _loadBookingData,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:
-      _selectedPage(),
-      bottomNavigationBar:
-      NavigationBar(
-        selectedIndex:
-        _selectedNavigationIndex,
-        onDestinationSelected: (
-            index,
-            ) {
+      body: _selectedPage(),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedNavigationIndex,
+        onDestinationSelected: (index) {
           setState(() {
-            _selectedNavigationIndex =
-                index;
+            _selectedNavigationIndex = index;
           });
         },
-        destinations:
-        const [
+        destinations: const [
           NavigationDestination(
-            icon: Icon(
-              Icons.dashboard_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.dashboard_rounded,
-            ),
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard_rounded),
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(
-              Icons.tune_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.tune_rounded,
-            ),
+            icon: Icon(Icons.tune_outlined),
+            selectedIcon: Icon(Icons.tune_rounded),
             label: 'Manage',
           ),
           NavigationDestination(
-            icon: Icon(
-              Icons.receipt_long_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.receipt_long_rounded,
-            ),
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long_rounded),
             label: 'Bookings',
           ),
           NavigationDestination(
-            icon: Icon(
-              Icons.forum_outlined,
-            ),
-            selectedIcon: Icon(
-              Icons.forum_rounded,
-            ),
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum_rounded),
             label: 'Connect',
           ),
           NavigationDestination(
-            icon: Icon(
-              Icons.person_outline_rounded,
-            ),
-            selectedIcon: Icon(
-              Icons.person_rounded,
-            ),
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
             label: 'Profile',
           ),
         ],
@@ -318,6 +241,7 @@ class _OperatorDashboard extends StatelessWidget {
     required this.onViewBookingsPressed,
     required this.onManagePressed,
     required this.onSafariOpportunitiesPressed,
+    required this.onAwardsPressed,
     required this.onBookingPressed,
     required this.onRefresh,
   });
@@ -332,118 +256,74 @@ class _OperatorDashboard extends StatelessWidget {
 
   final bool acceptingBookings;
 
-  final ValueChanged<bool>
-  onAvailabilityChanged;
+  final ValueChanged<bool> onAvailabilityChanged;
 
-  final VoidCallback
-  onNotificationPressed;
+  final VoidCallback onNotificationPressed;
 
-  final VoidCallback
-  onViewBookingsPressed;
+  final VoidCallback onViewBookingsPressed;
 
-  final VoidCallback
-  onManagePressed;
+  final VoidCallback onManagePressed;
 
-  final VoidCallback
-  onSafariOpportunitiesPressed;
+  final VoidCallback onSafariOpportunitiesPressed;
 
-  final ValueChanged<BookingItem>
-  onBookingPressed;
+  final VoidCallback onAwardsPressed;
 
-  final Future<void> Function()
-  onRefresh;
+  final ValueChanged<BookingItem> onBookingPressed;
+
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final theme =
-    Theme.of(context);
+    final theme = Theme.of(context);
 
-    final colors =
-        theme.colorScheme;
+    final colors = theme.colorScheme;
 
-    final isDark =
-        theme.brightness ==
-            Brightness.dark;
+    final isDark = theme.brightness == Brightness.dark;
 
-    final mutedText =
-    colors.onSurface.withOpacity(
-      .62,
-    );
+    final mutedText = colors.onSurface.withOpacity(.62);
 
-    final borderColor =
-    colors.outline.withOpacity(
-      isDark ? .62 : .72,
-    );
+    final borderColor = colors.outline.withOpacity(isDark ? .62 : .72);
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh:
-        onRefresh,
-        color:
-        colors.primary,
+        onRefresh: onRefresh,
+        color: colors.primary,
         child: SingleChildScrollView(
-          physics:
-          const AlwaysScrollableScrollPhysics(),
-          padding:
-          const EdgeInsets.fromLTRB(
-            20,
-            18,
-            20,
-            28,
-          ),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   CurrentUserAvatar(
                     radius: 25,
-                    backgroundColor:
-                    colors.primary
-                        .withOpacity(
-                      isDark
-                          ? .18
-                          : .13,
+                    backgroundColor: colors.primary.withOpacity(
+                      isDark ? .18 : .13,
                     ),
-                    foregroundColor:
-                    colors.primary,
+                    foregroundColor: colors.primary,
                   ),
 
-                  const SizedBox(
-                    width: 12,
-                  ),
+                  const SizedBox(width: 12),
 
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Good morning, ${AuthService.instance.currentUser?.name ?? 'Operator'}!',
-                          style:
-                          theme.textTheme
-                              .titleMedium
-                              ?.copyWith(
-                            fontWeight:
-                            FontWeight.w300,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w300,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 2,
-                        ),
+                        const SizedBox(height: 2),
 
                         Text(
-                          AuthService.instance
-                              .currentUser?.email ??
+                          AuthService.instance.currentUser?.email ??
                               'Tour Operator',
-                          style:
-                          theme.textTheme
-                              .bodySmall
-                              ?.copyWith(
-                            color:
-                            mutedText,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: mutedText,
                           ),
                         ),
                       ],
@@ -451,125 +331,69 @@ class _OperatorDashboard extends StatelessWidget {
                   ),
 
                   IconButton(
-                    onPressed:
-                    onNotificationPressed,
-                    style:
-                    IconButton.styleFrom(
-                      backgroundColor:
-                      colors.surface,
-                      foregroundColor:
-                      colors.onSurface,
-                      side: BorderSide(
-                        color:
-                        borderColor,
-                      ),
+                    onPressed: onNotificationPressed,
+                    style: IconButton.styleFrom(
+                      backgroundColor: colors.surface,
+                      foregroundColor: colors.onSurface,
+                      side: BorderSide(color: borderColor),
                     ),
-                    icon:
-                    const Badge(
+                    icon: const Badge(
                       smallSize: 8,
-                      child: Icon(
-                        Icons
-                            .notifications_outlined,
-                      ),
+                      child: Icon(Icons.notifications_outlined),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(
-                height: 26,
-              ),
+              const SizedBox(height: 26),
 
               Container(
-                padding:
-                const EdgeInsets.all(
-                  22,
-                ),
-                decoration:
-                BoxDecoration(
-                  gradient:
-                  LinearGradient(
-                    colors: isDark
-                        ? const [
-                      Color(
-                        0xFF23423F,
-                      ),
-                      Color(
-                        0xFF182F35,
-                      ),
-                    ]
-                        : const [
-                      Color(
-                        0xFFC9F0E7,
-                      ),
-                      Color(
-                        0xFF8AD6C4,
-                      ),
-                    ],
-                    begin:
-                    Alignment.topLeft,
-                    end:
-                    Alignment.bottomRight,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors:
+                        isDark
+                            ? const [Color(0xFF23423F), Color(0xFF182F35)]
+                            : const [Color(0xFFC9F0E7), Color(0xFF8AD6C4)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  borderRadius:
-                  BorderRadius.circular(
-                    28,
-                  ),
+                  borderRadius: BorderRadius.circular(28),
                 ),
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding:
-                          const EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 11,
                             vertical: 7,
                           ),
-                          decoration:
-                          BoxDecoration(
-                            color:
-                            colors.surface
-                                .withOpacity(
-                              .88,
-                            ),
-                            borderRadius:
-                            BorderRadius.circular(
-                              30,
-                            ),
+                          decoration: BoxDecoration(
+                            color: colors.surface.withOpacity(.88),
+                            borderRadius: BorderRadius.circular(30),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 width: 8,
                                 height: 8,
-                                decoration:
-                                BoxDecoration(
+                                decoration: BoxDecoration(
                                   color:
-                                  acceptingBookings
-                                      ? const Color(
-                                    0xFF2BB673,
-                                  )
-                                      : colors.error,
-                                  shape:
-                                  BoxShape.circle,
+                                      acceptingBookings
+                                          ? const Color(0xFF2BB673)
+                                          : colors.error,
+                                  shape: BoxShape.circle,
                                 ),
                               ),
-                              const SizedBox(
-                                width: 6,
-                              ),
+                              const SizedBox(width: 6),
                               Text(
                                 acceptingBookings
                                     ? 'Bookings open'
                                     : 'Bookings paused',
-                                style:
-                                theme.textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                  fontWeight:
-                                  FontWeight.w700,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -579,55 +403,78 @@ class _OperatorDashboard extends StatelessWidget {
                         const Spacer(),
 
                         Switch.adaptive(
-                          value:
-                          acceptingBookings,
-                          onChanged:
-                          onAvailabilityChanged,
+                          value: acceptingBookings,
+                          onChanged: onAvailabilityChanged,
                         ),
                       ],
                     ),
 
-                    const SizedBox(
-                      height: 22,
-                    ),
+                    const SizedBox(height: 22),
 
                     Text(
                       'Create memorable trips.\nGrow your travel business.',
-                      style:
-                      theme.textTheme
-                          .headlineSmall
-                          ?.copyWith(
-                        fontWeight:
-                        FontWeight.w300,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w300,
                         height: 1.25,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: 18,
-                    ),
+                    const SizedBox(height: 18),
 
-                    FilledButton.icon(
-                      onPressed:
-                      onManagePressed,
-                      style:
-                      FilledButton.styleFrom(
-                        backgroundColor:
-                        colors.surface,
-                        foregroundColor:
-                        colors.primary,
-                      ),
-                      icon:
-                      const Icon(
-                        Icons.tune_rounded,
-                      ),
-                      label:
-                      const Text(
-                        'Manage tours & car hire',
-                        style:
-                        TextStyle(
-                          fontWeight:
-                          FontWeight.w800,
+                    Material(
+                      color: Colors.white.withOpacity(.94),
+                      borderRadius: BorderRadius.circular(18),
+                      child: InkWell(
+                        onTap: onManagePressed,
+                        borderRadius: BorderRadius.circular(18),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withOpacity(.08),
+                                  borderRadius: BorderRadius.circular(13),
+                                ),
+                                child: Icon(
+                                  Icons.tune_rounded,
+                                  color: colors.primary,
+                                  size: 21,
+                                ),
+                              ),
+                              const SizedBox(width: 11),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Manage Services',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: const Color(0xFF17211F),
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Tours and car hire vehicles',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: const Color(0xFF66716E),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: colors.primary,
+                                size: 15,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -635,57 +482,37 @@ class _OperatorDashboard extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(
-                height: 27,
-              ),
+              const SizedBox(height: 27),
 
               _SectionHeading(
-                title:
-                'Safari Opportunities',
-                actionLabel:
-                'View all',
-                onPressed:
-                onSafariOpportunitiesPressed,
+                title: 'Safari Opportunities',
+                actionLabel: 'View all',
+                onPressed: onSafariOpportunitiesPressed,
               ),
 
-              const SizedBox(
-                height: 13,
-              ),
+              const SizedBox(height: 13),
 
-              _SafariOpportunityBanner(
-                onPressed:
-                onSafariOpportunitiesPressed,
-              ),
+              _SafariOpportunityBanner(onPressed: onSafariOpportunitiesPressed),
 
-              const SizedBox(
-                height: 28,
-              ),
+              const SizedBox(height: 14),
+
+              _OperatorAwardsCard(onPressed: onAwardsPressed),
+
+              const SizedBox(height: 28),
 
               Text(
                 'Business Overview',
-                style:
-                theme.textTheme
-                    .titleLarge
-                    ?.copyWith(
-                  fontWeight:
-                  FontWeight.w300,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w300,
                 ),
               ),
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
               if (loadingBookings)
                 const Padding(
-                  padding:
-                  EdgeInsets.symmetric(
-                    vertical: 20,
-                  ),
-                  child: Center(
-                    child:
-                    CircularProgressIndicator(),
-                  ),
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
                 )
               else
                 Column(
@@ -694,71 +521,48 @@ class _OperatorDashboard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _StatCard(
-                            icon: Icons
-                                .receipt_long_rounded,
-                            value:
-                            '${summary.totalBookings}',
-                            label:
-                            'Bookings',
-                            color:
-                            colors.primary,
+                            icon: Icons.receipt_long_rounded,
+                            value: '${summary.totalBookings}',
+                            label: 'Bookings',
+                            color: colors.primary,
                           ),
                         ),
 
-                        const SizedBox(
-                          width: 12,
-                        ),
+                        const SizedBox(width: 12),
 
                         Expanded(
                           child: _StatCard(
-                            icon: Icons
-                                .hourglass_top_rounded,
-                            value:
-                            '${summary.pendingBookings}',
-                            label:
-                            'Pending',
-                            color:
-                            colors.secondary,
+                            icon: Icons.hourglass_top_rounded,
+                            value: '${summary.pendingBookings}',
+                            label: 'Pending',
+                            color: colors.secondary,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(
-                      height: 12,
-                    ),
+                    const SizedBox(height: 12),
 
                     Row(
                       children: [
                         Expanded(
                           child: _StatCard(
-                            icon:
-                            Icons.groups_rounded,
-                            value:
-                            '${summary.travellers}',
-                            label:
-                            'Travellers',
-                            color:
-                            const Color(
-                              0xFF55B6C7,
-                            ),
+                            icon: Icons.groups_rounded,
+                            value: '${summary.travellers}',
+                            label: 'Travellers',
+                            color: const Color(0xFF55B6C7),
                           ),
                         ),
 
-                        const SizedBox(
-                          width: 12,
-                        ),
+                        const SizedBox(width: 12),
 
                         Expanded(
                           child: _StatCard(
-                            icon: Icons
-                                .payments_outlined,
+                            icon: Icons.payments_outlined,
                             value:
-                            'USD ${summary.bookingValue.toStringAsFixed(0)}',
-                            label:
-                            'Booking Value',
-                            color:
-                            colors.secondary,
+                                'USD ${summary.bookingValue.toStringAsFixed(0)}',
+                            label: 'Booking Value',
+                            color: colors.secondary,
                           ),
                         ),
                       ],
@@ -766,72 +570,118 @@ class _OperatorDashboard extends StatelessWidget {
                   ],
                 ),
 
-              const SizedBox(
-                height: 29,
-              ),
+              const SizedBox(height: 29),
 
               _SectionHeading(
-                title:
-                'Recent bookings',
-                actionLabel:
-                'View all',
-                onPressed:
-                onViewBookingsPressed,
+                title: 'Recent bookings',
+                actionLabel: 'View all',
+                onPressed: onViewBookingsPressed,
               ),
 
-              const SizedBox(
-                height: 14,
-              ),
+              const SizedBox(height: 14),
 
               if (bookingError != null)
-                _ErrorCard(
-                  message:
-                  bookingError!,
-                )
+                _ErrorCard(message: bookingError!)
               else if (loadingBookings)
-                const Center(
-                  child:
-                  CircularProgressIndicator(),
-                )
+                const Center(child: CircularProgressIndicator())
               else if (bookings.isEmpty)
-                  const _NoBookingsCard()
-                else
-                  ...bookings.take(3).map(
-                        (booking) => Padding(
-                      padding:
-                      const EdgeInsets.only(
-                        bottom: 12,
-                      ),
-                      child:
-                      _RealBookingCard(
-                        booking:
-                        booking,
-                        onPressed: () {
-                          onBookingPressed(
-                            booking,
-                          );
-                        },
+                const _NoBookingsCard()
+              else
+                ...bookings
+                    .take(3)
+                    .map(
+                      (booking) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _RealBookingCard(
+                          booking: booking,
+                          onPressed: () {
+                            onBookingPressed(booking);
+                          },
+                        ),
                       ),
                     ),
-                  ),
 
-              const SizedBox(
-                height: 18,
-              ),
+              const SizedBox(height: 18),
 
               const CatalogHomeSections(),
 
-              const SizedBox(
-                height: 30,
-              ),
+              const SizedBox(height: 30),
 
               const ProviderDiscoverySections(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-              const SizedBox(
-                height: 30,
+class _OperatorAwardsCard extends StatelessWidget {
+  const _OperatorAwardsCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = colors.outline.withValues(alpha: isDark ? .62 : .72);
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(17),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: colors.secondary.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.workspace_premium_rounded,
+                  color: colors.secondary,
+                  size: 25,
+                ),
               ),
-
-              const OperatorOfferingsSections(),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tourist Guide Awards',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Explore categories, finalists and award winners',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withValues(alpha: .60),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: colors.onSurface.withValues(alpha: .38),
+                size: 16,
+              ),
             ],
           ),
         ),
@@ -857,159 +707,94 @@ class _BookingsPage extends StatelessWidget {
 
   final int selectedFilter;
 
-  final ValueChanged<int>
-  onFilterSelected;
+  final ValueChanged<int> onFilterSelected;
 
-  final Future<void> Function()
-  onRefresh;
+  final Future<void> Function() onRefresh;
 
-  final ValueChanged<BookingItem>
-  onBookingPressed;
+  final ValueChanged<BookingItem> onBookingPressed;
 
   @override
   Widget build(BuildContext context) {
-    const filters = [
-      'All',
-      'Pending',
-      'Confirmed',
-      'Completed',
-      'Cancelled',
-    ];
+    const filters = ['All', 'Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
-    final selectedStatus =
-    filters[selectedFilter].toLowerCase();
+    final selectedStatus = filters[selectedFilter].toLowerCase();
 
     final filtered =
-    selectedFilter == 0
-        ? bookings
-        : bookings
-        .where(
-          (booking) =>
-      booking.status ==
-          selectedStatus,
-    )
-        .toList();
+        selectedFilter == 0
+            ? bookings
+            : bookings
+                .where((booking) => booking.status == selectedStatus)
+                .toList();
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh:
-        onRefresh,
+        onRefresh: onRefresh,
         child: ListView(
-          physics:
-          const AlwaysScrollableScrollPhysics(),
-          padding:
-          const EdgeInsets.fromLTRB(
-            20,
-            22,
-            20,
-            28,
-          ),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
           children: [
             const Text(
               'Bookings',
               style: TextStyle(
-                color:
-                FieldGuidePalette.ink,
+                color: FieldGuidePalette.ink,
                 fontSize: 28,
-                fontWeight:
-                FontWeight.w800,
+                fontWeight: FontWeight.w800,
               ),
             ),
 
-            const SizedBox(
-              height: 6,
-            ),
+            const SizedBox(height: 6),
 
             const Text(
               'Manage real traveller bookings from your safari proposals.',
               style: TextStyle(
-                color:
-                FieldGuidePalette.mutedText,
+                color: FieldGuidePalette.mutedText,
                 fontSize: 13,
               ),
             ),
 
-            const SizedBox(
-              height: 20,
-            ),
+            const SizedBox(height: 20),
 
             SizedBox(
               height: 42,
-              child:
-              ListView.separated(
-                scrollDirection:
-                Axis.horizontal,
-                itemCount:
-                filters.length,
-                separatorBuilder:
-                    (_, __) =>
-                const SizedBox(
-                  width: 8,
-                ),
-                itemBuilder:
-                    (
-                    context,
-                    index,
-                    ) {
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: filters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
                   return ChoiceChip(
-                    label:
-                    Text(
-                      filters[index],
-                    ),
-                    selected:
-                    selectedFilter ==
-                        index,
+                    label: Text(filters[index]),
+                    selected: selectedFilter == index,
                     onSelected: (_) {
-                      onFilterSelected(
-                        index,
-                      );
+                      onFilterSelected(index);
                     },
                   );
                 },
               ),
             ),
 
-            const SizedBox(
-              height: 22,
-            ),
+            const SizedBox(height: 22),
 
             if (loading)
               const Padding(
-                padding:
-                EdgeInsets.all(
-                  30,
-                ),
-                child: Center(
-                  child:
-                  CircularProgressIndicator(),
-                ),
+                padding: EdgeInsets.all(30),
+                child: Center(child: CircularProgressIndicator()),
               )
             else if (error != null)
-              _ErrorCard(
-                message:
-                error!,
-              )
+              _ErrorCard(message: error!)
             else if (filtered.isEmpty)
-                const _NoBookingsCard()
-              else
-                ...filtered.map(
-                      (booking) => Padding(
-                    padding:
-                    const EdgeInsets.only(
-                      bottom: 12,
-                    ),
-                    child:
-                    _RealBookingCard(
-                      booking:
-                      booking,
-                      onPressed: () {
-                        onBookingPressed(
-                          booking,
-                        );
-                      },
-                    ),
+              const _NoBookingsCard()
+            else
+              ...filtered.map(
+                (booking) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _RealBookingCard(
+                    booking: booking,
+                    onPressed: () {
+                      onBookingPressed(booking);
+                    },
                   ),
                 ),
+              ),
           ],
         ),
       ),
@@ -1018,118 +803,68 @@ class _BookingsPage extends StatelessWidget {
 }
 
 class _RealBookingCard extends StatelessWidget {
-  const _RealBookingCard({
-    required this.booking,
-    required this.onPressed,
-  });
+  const _RealBookingCard({required this.booking, required this.onPressed});
 
   final BookingItem booking;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final color =
-    _statusColor(
-      booking.status,
-    );
+    final color = _statusColor(booking.status);
 
     return Material(
-      color:
-      Colors.white.withOpacity(
-        .76,
-      ),
-      borderRadius:
-      BorderRadius.circular(
-        22,
-      ),
+      color: Colors.white.withOpacity(.76),
+      borderRadius: BorderRadius.circular(22),
       child: InkWell(
-        onTap:
-        onPressed,
-        borderRadius:
-        BorderRadius.circular(
-          22,
-        ),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
         child: Container(
-          padding:
-          const EdgeInsets.all(
-            16,
-          ),
-          decoration:
-          BoxDecoration(
-            borderRadius:
-            BorderRadius.circular(
-              22,
-            ),
-            border:
-            Border.all(
-              color:
-              FieldGuidePalette.border,
-            ),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: FieldGuidePalette.border),
           ),
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
-                    decoration:
-                    BoxDecoration(
-                      color:
-                      FieldGuidePalette
-                          .primary
-                          .withOpacity(
-                        .09,
-                      ),
-                      borderRadius:
-                      BorderRadius.circular(
-                        14,
-                      ),
+                    decoration: BoxDecoration(
+                      color: FieldGuidePalette.primary.withOpacity(.09),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child:
-                    const Icon(
-                      Icons
-                          .confirmation_number_outlined,
-                      color:
-                      FieldGuidePalette.primary,
+                    child: const Icon(
+                      Icons.confirmation_number_outlined,
+                      color: FieldGuidePalette.primary,
                     ),
                   ),
 
-                  const SizedBox(
-                    width: 11,
-                  ),
+                  const SizedBox(width: 11),
 
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           booking.tourist.name.isEmpty
                               ? 'Traveller'
                               : booking.tourist.name,
-                          style:
-                          const TextStyle(
-                            color:
-                            FieldGuidePalette.ink,
+                          style: const TextStyle(
+                            color: FieldGuidePalette.ink,
                             fontSize: 14,
-                            fontWeight:
-                            FontWeight.w800,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
 
-                        const SizedBox(
-                          height: 2,
-                        ),
+                        const SizedBox(height: 2),
 
                         Text(
                           booking.reference,
-                          style:
-                          const TextStyle(
-                            color:
-                            FieldGuidePalette.mutedText,
+                          style: const TextStyle(
+                            color: FieldGuidePalette.mutedText,
                             fontSize: 11,
                           ),
                         ),
@@ -1138,81 +873,55 @@ class _RealBookingCard extends StatelessWidget {
                   ),
 
                   Container(
-                    padding:
-                    const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 9,
                       vertical: 6,
                     ),
-                    decoration:
-                    BoxDecoration(
-                      color:
-                      color.withOpacity(
-                        .10,
-                      ),
-                      borderRadius:
-                      BorderRadius.circular(
-                        100,
-                      ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(.10),
+                      borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
-                      _prettyStatus(
-                        booking.status,
-                      ),
-                      style:
-                      TextStyle(
-                        color:
-                        color,
+                      _prettyStatus(booking.status),
+                      style: TextStyle(
+                        color: color,
                         fontSize: 10,
-                        fontWeight:
-                        FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(
-                height: 13,
-              ),
+              const SizedBox(height: 13),
 
               Text(
                 booking.title,
                 maxLines: 2,
-                overflow:
-                TextOverflow.ellipsis,
-                style:
-                const TextStyle(
-                  color:
-                  FieldGuidePalette.ink,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: FieldGuidePalette.ink,
                   fontSize: 14,
-                  fontWeight:
-                  FontWeight.w700,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
 
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
 
               Row(
                 children: [
                   const Icon(
                     Icons.groups_outlined,
-                    color:
-                    FieldGuidePalette.secondary,
+                    color: FieldGuidePalette.secondary,
                     size: 15,
                   ),
 
-                  const SizedBox(
-                    width: 4,
-                  ),
+                  const SizedBox(width: 4),
 
                   Text(
                     '${booking.travellers} traveller${booking.travellers == 1 ? '' : 's'}',
-                    style:
-                    const TextStyle(
-                      color:
-                      FieldGuidePalette.mutedText,
+                    style: const TextStyle(
+                      color: FieldGuidePalette.mutedText,
                       fontSize: 11,
                     ),
                   ),
@@ -1221,13 +930,10 @@ class _RealBookingCard extends StatelessWidget {
 
                   Text(
                     '${booking.currency} ${booking.totalAmount.toStringAsFixed(0)}',
-                    style:
-                    const TextStyle(
-                      color:
-                      FieldGuidePalette.primary,
+                    style: const TextStyle(
+                      color: FieldGuidePalette.primary,
                       fontSize: 13,
-                      fontWeight:
-                      FontWeight.w800,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
@@ -1240,94 +946,55 @@ class _RealBookingCard extends StatelessWidget {
   }
 }
 
-class _SafariOpportunityBanner
-    extends StatelessWidget {
-  const _SafariOpportunityBanner({
-    required this.onPressed,
-  });
+class _SafariOpportunityBanner extends StatelessWidget {
+  const _SafariOpportunityBanner({required this.onPressed});
 
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color:
-      Colors.white.withOpacity(
-        .76,
-      ),
-      borderRadius:
-      BorderRadius.circular(
-        22,
-      ),
+      color: Colors.white.withOpacity(.76),
+      borderRadius: BorderRadius.circular(22),
       child: InkWell(
-        onTap:
-        onPressed,
-        borderRadius:
-        BorderRadius.circular(
-          22,
-        ),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
         child: Container(
-          padding:
-          const EdgeInsets.all(
-            17,
-          ),
-          decoration:
-          BoxDecoration(
-            borderRadius:
-            BorderRadius.circular(
-              22,
-            ),
-            border:
-            Border.all(
-              color:
-              FieldGuidePalette.border,
-            ),
+          padding: const EdgeInsets.all(17),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: FieldGuidePalette.border),
           ),
           child: const Row(
             children: [
               CircleAvatar(
                 radius: 27,
-                backgroundColor:
-                Color(
-                  0x12165B5D,
-                ),
+                backgroundColor: Color(0x12165B5D),
                 child: Icon(
-                  Icons
-                      .travel_explore_rounded,
-                  color:
-                  FieldGuidePalette.primary,
+                  Icons.travel_explore_rounded,
+                  color: FieldGuidePalette.primary,
                 ),
               ),
 
-              SizedBox(
-                width: 13,
-              ),
+              SizedBox(width: 13),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Traveller Safari Requests',
-                      style:
-                      TextStyle(
-                        color:
-                        FieldGuidePalette.ink,
+                      style: TextStyle(
+                        color: FieldGuidePalette.ink,
                         fontSize: 14,
-                        fontWeight:
-                        FontWeight.w800,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(
-                      height: 4,
-                    ),
+                    SizedBox(height: 4),
                     Text(
                       'View requests matching your destinations and activities.',
-                      style:
-                      TextStyle(
-                        color:
-                        FieldGuidePalette.mutedText,
+                      style: TextStyle(
+                        color: FieldGuidePalette.mutedText,
                         fontSize: 11.5,
                       ),
                     ),
@@ -1336,10 +1003,8 @@ class _SafariOpportunityBanner
               ),
 
               Icon(
-                Icons
-                    .arrow_forward_rounded,
-                color:
-                FieldGuidePalette.primary,
+                Icons.arrow_forward_rounded,
+                color: FieldGuidePalette.primary,
               ),
             ],
           ),
@@ -1365,62 +1030,32 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.all(
-        15,
-      ),
-      decoration:
-      BoxDecoration(
-        color:
-        Colors.white.withOpacity(
-          .76,
-        ),
-        borderRadius:
-        BorderRadius.circular(
-          20,
-        ),
-        border:
-        Border.all(
-          color:
-          FieldGuidePalette.border,
-        ),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.76),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: FieldGuidePalette.border),
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color:
-            color,
-            size: 22,
-          ),
-          const SizedBox(
-            height: 11,
-          ),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 11),
           Text(
             value,
             maxLines: 1,
-            overflow:
-            TextOverflow.ellipsis,
-            style:
-            const TextStyle(
-              color:
-              FieldGuidePalette.ink,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: FieldGuidePalette.ink,
               fontSize: 17,
-              fontWeight:
-              FontWeight.w800,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(
-            height: 2,
-          ),
+          const SizedBox(height: 2),
           Text(
             label,
-            style:
-            const TextStyle(
-              color:
-              FieldGuidePalette.mutedText,
+            style: const TextStyle(
+              color: FieldGuidePalette.mutedText,
               fontSize: 10.5,
             ),
           ),
@@ -1448,24 +1083,15 @@ class _SectionHeading extends StatelessWidget {
         Expanded(
           child: Text(
             title.toTitleCase(),
-            style:
-            const TextStyle(
-              color:
-              FieldGuidePalette.ink,
+            style: const TextStyle(
+              color: FieldGuidePalette.ink,
               fontSize: 19,
-              fontWeight:
-              FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
         if (actionLabel != null)
-          TextButton(
-            onPressed:
-            onPressed,
-            child: Text(
-              actionLabel!,
-            ),
-          ),
+          TextButton(onPressed: onPressed, child: Text(actionLabel!)),
       ],
     );
   }
@@ -1477,60 +1103,33 @@ class _NoBookingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.all(
-        24,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.74),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: FieldGuidePalette.border),
       ),
-      decoration:
-      BoxDecoration(
-        color:
-        Colors.white.withOpacity(
-          .74,
-        ),
-        borderRadius:
-        BorderRadius.circular(
-          22,
-        ),
-        border:
-        Border.all(
-          color:
-          FieldGuidePalette.border,
-        ),
-      ),
-      child:
-      const Column(
+      child: const Column(
         children: [
           Icon(
-            Icons
-                .receipt_long_outlined,
-            color:
-            FieldGuidePalette.primary,
+            Icons.receipt_long_outlined,
+            color: FieldGuidePalette.primary,
             size: 32,
           ),
-          SizedBox(
-            height: 10,
-          ),
+          SizedBox(height: 10),
           Text(
             'No bookings yet',
-            style:
-            TextStyle(
-              color:
-              FieldGuidePalette.ink,
-              fontWeight:
-              FontWeight.w800,
+            style: TextStyle(
+              color: FieldGuidePalette.ink,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(
-            height: 5,
-          ),
+          SizedBox(height: 5),
           Text(
             'A booking will appear here after a traveller accepts one of your safari proposals.',
-            textAlign:
-            TextAlign.center,
-            style:
-            TextStyle(
-              color:
-              FieldGuidePalette.mutedText,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: FieldGuidePalette.mutedText,
               fontSize: 12,
               height: 1.4,
             ),
@@ -1542,51 +1141,32 @@ class _NoBookingsCard extends StatelessWidget {
 }
 
 class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({
-    required this.message,
-  });
+  const _ErrorCard({required this.message});
 
   final String message;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.all(
-        18,
-      ),
-      decoration:
-      BoxDecoration(
-        color:
-        const Color(
-          0x109B4949,
-        ),
-        borderRadius:
-        BorderRadius.circular(
-          18,
-        ),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0x109B4949),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Text(
         message,
-        style:
-        const TextStyle(
-          color:
-          Color(
-            0xFF9B4949,
-          ),
-          fontSize: 12,
-        ),
+        style: const TextStyle(color: Color(0xFF9B4949), fontSize: 12),
       ),
     );
   }
 }
 
-class _OperatorProfilePage
-    extends StatelessWidget {
+class _OperatorProfilePage extends StatelessWidget {
   const _OperatorProfilePage({
     required this.acceptingBookings,
     required this.onAvailabilityChanged,
     required this.onSafariOpportunities,
+    required this.onGuideTeam,
     required this.onLogout,
     required this.onEditAccount,
     required this.onDeleteAccount,
@@ -1594,11 +1174,11 @@ class _OperatorProfilePage
 
   final bool acceptingBookings;
 
-  final ValueChanged<bool>
-  onAvailabilityChanged;
+  final ValueChanged<bool> onAvailabilityChanged;
 
-  final VoidCallback
-  onSafariOpportunities;
+  final VoidCallback onSafariOpportunities;
+
+  final VoidCallback onGuideTeam;
 
   final VoidCallback onLogout;
   final VoidCallback onEditAccount;
@@ -1606,124 +1186,80 @@ class _OperatorProfilePage
 
   @override
   Widget build(BuildContext context) {
-    final colors =
-        Theme.of(context).colorScheme;
+    final colors = Theme.of(context).colorScheme;
 
     return SafeArea(
       child: ListView(
-        padding:
-        const EdgeInsets.fromLTRB(
-          20,
-          24,
-          20,
-          28,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
         children: [
           Center(
             child: CurrentUserAvatar(
               radius: 47,
-              backgroundColor:
-              colors.primary
-                  .withOpacity(
-                .12,
-              ),
-              foregroundColor:
-              colors.primary,
+              backgroundColor: colors.primary.withOpacity(.12),
+              foregroundColor: colors.primary,
             ),
           ),
 
-          const SizedBox(
-            height: 14,
-          ),
+          const SizedBox(height: 14),
 
           Text(
-            AuthService.instance
-                .currentUser?.name ??
-                'Tour Operator',
-            textAlign:
-            TextAlign.center,
-            style:
-            const TextStyle(
-              color:
-              FieldGuidePalette.ink,
+            AuthService.instance.currentUser?.name ?? 'Tour Operator',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: FieldGuidePalette.ink,
               fontSize: 20,
-              fontWeight:
-              FontWeight.w700,
+              fontWeight: FontWeight.w700,
             ),
           ),
 
-          const SizedBox(
-            height: 22,
-          ),
+          const SizedBox(height: 22),
 
           Container(
-            decoration:
-            BoxDecoration(
-              color:
-              colors.surface,
-              borderRadius:
-              BorderRadius.circular(
-                24,
-              ),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
               children: [
                 SwitchListTile.adaptive(
-                  value:
-                  acceptingBookings,
-                  onChanged:
-                  onAvailabilityChanged,
-                  title:
-                  const Text(
-                    'Accept new bookings',
-                  ),
+                  value: acceptingBookings,
+                  onChanged: onAvailabilityChanged,
+                  title: const Text('Accept new bookings'),
                 ),
 
                 _ProfileTile(
-                  icon: Icons
-                      .travel_explore_outlined,
-                  title:
-                  'Safari Opportunities',
-                  onTap:
-                  onSafariOpportunities,
+                  icon: Icons.travel_explore_outlined,
+                  title: 'Safari Opportunities',
+                  onTap: onSafariOpportunities,
                 ),
 
                 _ProfileTile(
-                  icon:
-                  Icons.edit_outlined,
-                  title:
-                  'Edit Account',
-                  onTap:
-                  onEditAccount,
+                  icon: Icons.groups_2_outlined,
+                  title: 'Our Safari Team',
+                  onTap: onGuideTeam,
                 ),
 
                 _ProfileTile(
-                  icon: Icons
-                      .delete_forever_outlined,
-                  title:
-                  'Delete Account',
-                  onTap:
-                  onDeleteAccount,
+                  icon: Icons.edit_outlined,
+                  title: 'Edit Account',
+                  onTap: onEditAccount,
+                ),
+
+                _ProfileTile(
+                  icon: Icons.delete_forever_outlined,
+                  title: 'Delete Account',
+                  onTap: onDeleteAccount,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(
-            height: 20,
-          ),
+          const SizedBox(height: 20),
 
           OutlinedButton.icon(
-            onPressed:
-            onLogout,
-            icon:
-            const Icon(
-              Icons.logout_rounded,
-            ),
-            label:
-            const Text(
-              'Sign Out',
-            ),
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Sign Out'),
           ),
         ],
       ),
@@ -1745,63 +1281,37 @@ class _ProfileTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap:
-      onTap,
-      leading:
-      Icon(
-        icon,
-        color:
-        FieldGuidePalette.primary,
-      ),
-      title:
-      Text(
-        title.toTitleCase(),
-      ),
-      trailing:
-      const Icon(
-        Icons
-            .arrow_forward_ios_rounded,
-        size: 15,
-      ),
+      onTap: onTap,
+      leading: Icon(icon, color: FieldGuidePalette.primary),
+      title: Text(title.toTitleCase()),
+      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15),
     );
   }
 }
 
-Color _statusColor(
-    String status,
-    ) {
+Color _statusColor(String status) {
   switch (status) {
     case 'confirmed':
-      return const Color(
-        0xFF2E7D32,
-      );
+      return const Color(0xFF2E7D32);
 
     case 'completed':
       return FieldGuidePalette.primary;
 
     case 'cancelled':
-      return const Color(
-        0xFF9B4949,
-      );
+      return const Color(0xFF9B4949);
 
     default:
       return FieldGuidePalette.secondary;
   }
 }
 
-String _prettyStatus(
-    String status,
-    ) {
+String _prettyStatus(String status) {
   return status
-      .replaceAll(
-    '_',
-    ' ',
-  )
+      .replaceAll('_', ' ')
       .split(' ')
       .map(
-        (word) => word.isEmpty
-        ? ''
-        : '${word[0].toUpperCase()}${word.substring(1)}',
-  )
+        (word) =>
+            word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}',
+      )
       .join(' ');
 }

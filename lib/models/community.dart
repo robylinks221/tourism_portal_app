@@ -40,6 +40,91 @@ class ProviderCatalogLink {
   }
 }
 
+class PublicProviderAffiliation {
+  const PublicProviderAffiliation({
+    required this.id,
+    required this.relationshipType,
+    required this.operator,
+  });
+
+  final int id;
+  final String relationshipType;
+  final CommunityMember operator;
+
+  String get relationshipLabel {
+    switch (relationshipType) {
+      case 'employee':
+        return 'Team member';
+      case 'freelance':
+        return 'Freelance guide';
+      case 'partner':
+        return 'Safari partner';
+      case 'contractor':
+        return 'Contract guide';
+      default:
+        return relationshipType
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((part) => part.isNotEmpty)
+            .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' ');
+    }
+  }
+
+  factory PublicProviderAffiliation.fromJson(Map<String, dynamic> json) {
+    final operator = json['operator'];
+    return PublicProviderAffiliation(
+      id: _integer(json['id']),
+      relationshipType: json['relationship_type']?.toString() ?? '',
+      operator: CommunityMember.fromJson(
+        operator is Map
+            ? Map<String, dynamic>.from(operator)
+            : const <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class SafariTeamMember {
+  const SafariTeamMember({
+    required this.affiliationId,
+    required this.relationshipType,
+    required this.guide,
+  });
+
+  final int affiliationId;
+  final String relationshipType;
+  final CommunityMember guide;
+
+  String get relationshipLabel {
+    switch (relationshipType) {
+      case 'employee':
+        return 'Team member';
+      case 'freelance':
+        return 'Freelance guide';
+      case 'partner':
+        return 'Safari partner';
+      case 'contractor':
+        return 'Contract guide';
+      default:
+        return relationshipType
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((part) => part.isNotEmpty)
+            .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' ');
+    }
+  }
+
+  factory SafariTeamMember.fromJson(Map<String, dynamic> json) {
+    return SafariTeamMember(
+      affiliationId: _integer(json['affiliation_id']),
+      relationshipType: json['relationship_type']?.toString() ?? '',
+      guide: CommunityMember.fromJson(json),
+    );
+  }
+}
+
 class CommunityMember {
   const CommunityMember({
     required this.id,
@@ -78,6 +163,8 @@ class CommunityMember {
     this.destinationLinks = const [],
     this.tours = const [],
     this.carHireEnabled = false,
+    this.publicAffiliations = const [],
+    this.safariTeam = const [],
     this.myRating,
   });
 
@@ -117,6 +204,8 @@ class CommunityMember {
   final List<ProviderCatalogLink> destinationLinks;
   final List<OperatorTour> tours;
   final bool carHireEnabled;
+  final List<PublicProviderAffiliation> publicAffiliations;
+  final List<SafariTeamMember> safariTeam;
   final ExistingRating? myRating;
 
   String get profilePhotoUrl => AuthService.storageUrl(profilePhoto);
@@ -139,22 +228,15 @@ class CommunityMember {
             .toSet()
             .toList();
 
-    if (values.isNotEmpty) {
-      return values;
-    }
+    if (values.isNotEmpty) return values;
 
     final baseCountry = country.trim();
-
     return baseCountry.isEmpty ? const [] : [baseCountry];
   }
 
   bool operatesIn(String countryName) {
     final normalized = countryName.trim().toLowerCase();
-
-    if (normalized.isEmpty) {
-      return false;
-    }
-
+    if (normalized.isEmpty) return false;
     return countriesServed.any(
       (country) => country.toLowerCase() == normalized,
     );
@@ -197,6 +279,7 @@ class CommunityMember {
             .map((item) => ProviderCatalogLink.fromJson(item, 'destination'))
             .where((item) => item.name.isNotEmpty)
             .toList();
+
     return CommunityMember(
       id: _integer(json['id']),
       name: json['name']?.toString() ?? '',
@@ -235,6 +318,16 @@ class CommunityMember {
       tours: _mapList(json['tours']).map(OperatorTour.fromJson).toList(),
       carHireEnabled:
           json['car_hire_enabled'] == true || json['car_hire_enabled'] == 1,
+      publicAffiliations:
+          _mapList(json['public_affiliations'])
+              .map(PublicProviderAffiliation.fromJson)
+              .where((item) => item.operator.id > 0)
+              .toList(),
+      safariTeam:
+          _mapList(json['safari_team'])
+              .map(SafariTeamMember.fromJson)
+              .where((item) => item.guide.id > 0)
+              .toList(),
       myRating:
           rating is Map
               ? ExistingRating.fromJson(Map<String, dynamic>.from(rating))

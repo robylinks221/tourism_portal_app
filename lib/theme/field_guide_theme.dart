@@ -49,22 +49,18 @@ abstract class FieldGuidePalette {
 }
 
 abstract class FieldGuideType {
-  static TextTheme textTheme(
-      TextTheme base, {
-        required Color color,
-      }) {
-    final inter = GoogleFonts.interTextTheme(base).apply(
-      bodyColor: color,
-      displayColor: color,
-    );
+  static TextTheme textTheme(TextTheme base, {required Color color}) {
+    final inter = GoogleFonts.interTextTheme(
+      base,
+    ).apply(bodyColor: color, displayColor: color);
 
     TextStyle? normalized(
-        TextStyle? style, {
-          required double size,
-          FontWeight? weight,
-          double height = 1.35,
-          double letterSpacing = 0,
-        }) {
+      TextStyle? style, {
+      required double size,
+      FontWeight? weight,
+      double height = 1.35,
+      double letterSpacing = 0,
+    }) {
       return style?.copyWith(
         fontSize: size,
         fontWeight: weight ?? style.fontWeight,

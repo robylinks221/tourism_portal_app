@@ -86,15 +86,13 @@ class WelcomePage extends StatelessWidget {
                       height: 280,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: isDark
-                              ? const [
-                            Color(0xFF202B38),
-                            Color(0xFF183D3B),
-                          ]
-                              : const [
-                            Color(0xFFDFF7F3),
-                            Color(0xFFBEECE5),
-                          ],
+                          colors:
+                              isDark
+                                  ? const [Color(0xFF202B38), Color(0xFF183D3B)]
+                                  : const [
+                                    Color(0xFFDFF7F3),
+                                    Color(0xFFBEECE5),
+                                  ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -166,12 +164,12 @@ class WelcomePage extends StatelessWidget {
                                     const SizedBox(width: 5),
                                     Text(
                                       'Explore Uganda',
-                                      style:
-                                      theme.textTheme.labelSmall?.copyWith(
-                                        color: colors.onSurface,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.7,
-                                      ),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: colors.onSurface,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.7,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -242,7 +240,7 @@ class WelcomePage extends StatelessWidget {
                     const SizedBox(height: 14),
                     Text(
                       'Discover remarkable destinations, trusted local guides, '
-                          'tour operators, and unforgettable travel experiences.',
+                      'tour operators, and unforgettable travel experiences.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: mutedText,
                         height: 1.65,
@@ -296,9 +294,7 @@ class WelcomePage extends StatelessWidget {
                         },
                         child: const Text(
                           'I already have an account',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -307,9 +303,8 @@ class WelcomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute<void>(
-                            builder: (_) => const TouristHomePage(
-                              isGuest: true,
-                            ),
+                            builder:
+                                (_) => const TouristHomePage(isGuest: true),
                           ),
                           (route) => false,
                         );
@@ -359,10 +354,7 @@ class _FeatureChip extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 13,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(30),
@@ -373,11 +365,7 @@ class _FeatureChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 18,
-          ),
+          Icon(icon, color: color, size: 18),
           const SizedBox(width: 7),
           Text(
             label,

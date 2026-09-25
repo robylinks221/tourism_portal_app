@@ -5,10 +5,181 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../models/catalog_item.dart';
+import '../models/community.dart';
+import '../models/operator_management.dart';
 import '../models/safari_mood.dart';
 import 'api_endpoint_resolver.dart';
 import 'api_exception.dart';
 import 'auth_service.dart';
+
+class ActivityTourPage {
+  const ActivityTourPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+    required this.hasMore,
+  });
+
+  final List<OperatorTour> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+  final bool hasMore;
+
+  factory ActivityTourPage.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : const <String, dynamic>{};
+
+    return ActivityTourPage(
+      items: _mapList(json['data']).map(OperatorTour.fromJson).toList(),
+      currentPage: _integer(meta['current_page'], fallback: 1),
+      perPage: _integer(meta['per_page'], fallback: 20),
+      total: _integer(meta['total']),
+      lastPage: _integer(meta['last_page'], fallback: 1),
+      hasMore: _boolean(meta['has_more']),
+    );
+  }
+}
+
+class ActivityProviderPage {
+  const ActivityProviderPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+    required this.hasMore,
+  });
+
+  final List<CommunityMember> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+  final bool hasMore;
+
+  factory ActivityProviderPage.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : const <String, dynamic>{};
+
+    return ActivityProviderPage(
+      items: _mapList(json['data']).map(CommunityMember.fromJson).toList(),
+      currentPage: _integer(meta['current_page'], fallback: 1),
+      perPage: _integer(meta['per_page'], fallback: 20),
+      total: _integer(meta['total']),
+      lastPage: _integer(meta['last_page'], fallback: 1),
+      hasMore: _boolean(meta['has_more']),
+    );
+  }
+}
+
+
+class DestinationTourPage {
+  const DestinationTourPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+    required this.hasMore,
+  });
+
+  final List<OperatorTour> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+  final bool hasMore;
+
+  factory DestinationTourPage.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : const <String, dynamic>{};
+
+    return DestinationTourPage(
+      items: _mapList(json['data']).map(OperatorTour.fromJson).toList(),
+      currentPage: _integer(meta['current_page'], fallback: 1),
+      perPage: _integer(meta['per_page'], fallback: 20),
+      total: _integer(meta['total']),
+      lastPage: _integer(meta['last_page'], fallback: 1),
+      hasMore: _boolean(meta['has_more']),
+    );
+  }
+}
+
+class DestinationProviderPage {
+  const DestinationProviderPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+    required this.hasMore,
+  });
+
+  final List<CommunityMember> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+  final bool hasMore;
+
+  factory DestinationProviderPage.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : const <String, dynamic>{};
+
+    return DestinationProviderPage(
+      items: _mapList(json['data']).map(CommunityMember.fromJson).toList(),
+      currentPage: _integer(meta['current_page'], fallback: 1),
+      perPage: _integer(meta['per_page'], fallback: 20),
+      total: _integer(meta['total']),
+      lastPage: _integer(meta['last_page'], fallback: 1),
+      hasMore: _boolean(meta['has_more']),
+    );
+  }
+}
+
+
+
+class MultiCountryTourPage {
+  const MultiCountryTourPage({
+    required this.items,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+    required this.hasMore,
+  });
+
+  final List<OperatorTour> items;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+  final bool hasMore;
+
+  factory MultiCountryTourPage.fromJson(Map<String, dynamic> json) {
+    final meta = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : const <String, dynamic>{};
+
+    return MultiCountryTourPage(
+      items: _mapList(json['data']).map(OperatorTour.fromJson).toList(),
+      currentPage: _integer(meta['current_page'], fallback: 1),
+      perPage: _integer(meta['per_page'], fallback: 20),
+      total: _integer(meta['total']),
+      lastPage: _integer(meta['last_page'], fallback: 1),
+      hasMore: _boolean(meta['has_more']),
+    );
+  }
+}
+
 
 class CatalogService {
   CatalogService._();
@@ -34,16 +205,15 @@ class CatalogService {
       final data = _decode(response);
       final moodData = data['moods'];
       return TourismCatalog(
-        moods:
-            moodData is List
-                ? moodData
-                    .whereType<Map>()
-                    .map(
-                      (item) =>
-                          SafariMood.fromJson(Map<String, dynamic>.from(item)),
-                    )
-                    .toList()
-                : fallbackSafariMoods,
+        moods: moodData is List
+            ? moodData
+                .whereType<Map>()
+                .map(
+                  (item) =>
+                      SafariMood.fromJson(Map<String, dynamic>.from(item)),
+                )
+                .toList()
+            : fallbackSafariMoods,
         activities: _items(data['activities'], 'activity'),
         destinations: _items(data['destinations'], 'destination'),
       );
@@ -140,6 +310,245 @@ class CatalogService {
     }
   }
 
+  Future<ActivityTourPage> fetchActivityTours({
+    required String slug,
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+    String sort = 'best_match',
+  }) async {
+    String? requestBaseUrl;
+
+    try {
+      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+
+      final uri = Uri.parse('$requestBaseUrl/activities/$slug/tours')
+          .replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          'sort': sort,
+          if (query.trim().isNotEmpty) 'q': query.trim(),
+        },
+      );
+
+      final response = await http
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 20));
+
+      return ActivityTourPage.fromJson(_decode(response));
+    } on ApiEndpointUnavailable {
+      throw const ApiException(
+        'Cannot load matching safaris. Keep Docker running and check Wi-Fi.',
+      );
+    } on SocketException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException(
+        'Cannot load matching safaris. Check the API connection.',
+      );
+    } on TimeoutException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException('Loading matching safaris timed out.');
+    } on FormatException {
+      throw const ApiException('The matching safaris response was unreadable.');
+    } on http.ClientException {
+      throw const ApiException('The matching safaris request failed.');
+    }
+  }
+
+  Future<ActivityProviderPage> fetchActivityProviders({
+    required String slug,
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+    String type = 'all',
+  }) async {
+    String? requestBaseUrl;
+
+    try {
+      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+
+      final uri = Uri.parse('$requestBaseUrl/activities/$slug/providers')
+          .replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          'type': type,
+          if (query.trim().isNotEmpty) 'q': query.trim(),
+        },
+      );
+
+      final response = await http
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 20));
+
+      return ActivityProviderPage.fromJson(_decode(response));
+    } on ApiEndpointUnavailable {
+      throw const ApiException(
+        'Cannot load local experts. Keep Docker running and check Wi-Fi.',
+      );
+    } on SocketException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException(
+        'Cannot load local experts. Check the API connection.',
+      );
+    } on TimeoutException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException('Loading local experts timed out.');
+    } on FormatException {
+      throw const ApiException('The local experts response was unreadable.');
+    } on http.ClientException {
+      throw const ApiException('The local experts request failed.');
+    }
+  }
+
+
+  Future<DestinationTourPage> fetchDestinationTours({
+    required String slug,
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+    String sort = 'best_match',
+  }) async {
+    String? requestBaseUrl;
+
+    try {
+      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+
+      final uri = Uri.parse('$requestBaseUrl/destinations/$slug/tours').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          'sort': sort,
+          if (query.trim().isNotEmpty) 'q': query.trim(),
+        },
+      );
+
+      final response = await http
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 20));
+
+      return DestinationTourPage.fromJson(_decode(response));
+    } on ApiEndpointUnavailable {
+      throw const ApiException(
+        'Cannot load destination safaris. Keep Docker running and check Wi-Fi.',
+      );
+    } on SocketException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException(
+        'Cannot load destination safaris. Check the API connection.',
+      );
+    } on TimeoutException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException('Loading destination safaris timed out.');
+    } on FormatException {
+      throw const ApiException(
+        'The destination safaris response was unreadable.',
+      );
+    } on http.ClientException {
+      throw const ApiException('The destination safaris request failed.');
+    }
+  }
+
+  Future<DestinationProviderPage> fetchDestinationProviders({
+    required String slug,
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+    String type = 'all',
+  }) async {
+    String? requestBaseUrl;
+
+    try {
+      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+
+      final uri =
+          Uri.parse('$requestBaseUrl/destinations/$slug/providers').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          'type': type,
+          if (query.trim().isNotEmpty) 'q': query.trim(),
+        },
+      );
+
+      final response = await http
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 20));
+
+      return DestinationProviderPage.fromJson(_decode(response));
+    } on ApiEndpointUnavailable {
+      throw const ApiException(
+        'Cannot load destination experts. Keep Docker running and check Wi-Fi.',
+      );
+    } on SocketException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException(
+        'Cannot load destination experts. Check the API connection.',
+      );
+    } on TimeoutException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException('Loading destination experts timed out.');
+    } on FormatException {
+      throw const ApiException(
+        'The destination experts response was unreadable.',
+      );
+    } on http.ClientException {
+      throw const ApiException('The destination experts request failed.');
+    }
+  }
+
+
+
+  Future<MultiCountryTourPage> fetchMultiCountryTours({
+    int page = 1,
+    int perPage = 20,
+    String query = '',
+    String country = '',
+    String sort = 'best_match',
+  }) async {
+    String? requestBaseUrl;
+
+    try {
+      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+
+      final uri = Uri.parse('$requestBaseUrl/multi-country-tours').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+          'sort': sort,
+          if (query.trim().isNotEmpty) 'q': query.trim(),
+          if (country.trim().isNotEmpty) 'country': country.trim(),
+        },
+      );
+
+      final response = await http
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 20));
+
+      return MultiCountryTourPage.fromJson(_decode(response));
+    } on ApiEndpointUnavailable {
+      throw const ApiException(
+        'Cannot load multi-country safaris. Keep Docker running and check Wi-Fi.',
+      );
+    } on SocketException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException(
+        'Cannot load multi-country safaris. Check the API connection.',
+      );
+    } on TimeoutException {
+      ApiEndpointResolver.instance.invalidate(requestBaseUrl);
+      throw const ApiException('Loading multi-country safaris timed out.');
+    } on FormatException {
+      throw const ApiException(
+        'The multi-country safari response was unreadable.',
+      );
+    } on http.ClientException {
+      throw const ApiException('The multi-country safari request failed.');
+    }
+  }
+
+
   Future<List<Accommodation>> fetchAccommodations(
     CatalogItem destination,
   ) async {
@@ -197,10 +606,9 @@ class CatalogService {
     try {
       final token = await AuthService.instance.requireToken();
       requestBaseUrl = await AuthService.instance.resolveBaseUrl();
-      final path =
-          accommodation == null
-              ? '/admin/destinations/${destination.id}/accommodations'
-              : '/admin/accommodations/${accommodation.id}';
+      final path = accommodation == null
+          ? '/admin/destinations/${destination.id}/accommodations'
+          : '/admin/accommodations/${accommodation.id}';
       final request =
           http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
             ..headers.addAll({
@@ -272,7 +680,7 @@ class CatalogService {
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
       throw const ApiException(
-        'Cannot delete this accommodation. Check the API connection.',
+        'Cannot delete accommodations. Check the API connection.',
       );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
@@ -432,7 +840,6 @@ class CatalogService {
     required List<int> activityIds,
   }) async {
     final token = await AuthService.instance.requireToken();
-
     String? requestBaseUrl;
 
     try {
@@ -481,7 +888,6 @@ class CatalogService {
     required List<int> destinationIds,
   }) async {
     final token = await AuthService.instance.requireToken();
-
     String? requestBaseUrl;
 
     try {
@@ -599,10 +1005,9 @@ class CatalogService {
   Map<String, dynamic> _decode(http.Response response) {
     dynamic decoded;
     try {
-      decoded =
-          response.body.isEmpty
-              ? <String, dynamic>{}
-              : jsonDecode(response.body);
+      decoded = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body);
     } on FormatException {
       if (response.statusCode == 413) {
         throw const ApiException(
@@ -616,20 +1021,36 @@ class CatalogService {
       }
       rethrow;
     }
-    final data =
-        decoded is Map
-            ? Map<String, dynamic>.from(decoded)
-            : <String, dynamic>{};
+    final data = decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : <String, dynamic>{};
     if (response.statusCode >= 200 && response.statusCode < 300) return data;
     final errors = data['errors'];
     if (errors is Map) {
       for (final value in errors.values) {
-        if (value is List && value.isNotEmpty)
+        if (value is List && value.isNotEmpty) {
           throw ApiException(value.first.toString());
+        }
       }
     }
     throw ApiException(
       data['message']?.toString() ?? 'Catalog request failed.',
     );
   }
+}
+
+List<Map<String, dynamic>> _mapList(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList();
+}
+
+int _integer(dynamic value, {int fallback = 0}) {
+  return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+bool _boolean(dynamic value) {
+  return value == true || value == 1 || value == '1';
 }

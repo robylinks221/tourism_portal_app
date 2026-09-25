@@ -9,9 +9,5 @@ Future<void> signOutAndShowLogin(BuildContext context) async {
     return;
   }
 
-  Navigator.pushNamedAndRemoveUntil(
-    context,
-    '/login',
-    (route) => false,
-  );
+  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
 }

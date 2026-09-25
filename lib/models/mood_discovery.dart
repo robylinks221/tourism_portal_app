@@ -15,7 +15,8 @@ class MoodDiscoveryData {
   final List<CatalogItem> destinations;
   final List<OperatorTour> tours;
 
-  int get totalResults => activities.length + destinations.length + tours.length;
+  int get totalResults =>
+      activities.length + destinations.length + tours.length;
 
   factory MoodDiscoveryData.fromJson(Map<String, dynamic> json) {
     final moodData = json['mood'];
@@ -25,12 +26,14 @@ class MoodDiscoveryData {
 
     return MoodDiscoveryData(
       mood: SafariMood.fromJson(Map<String, dynamic>.from(moodData)),
-      activities: _maps(json['activities'])
-          .map((item) => CatalogItem.fromJson(item, 'activity'))
-          .toList(),
-      destinations: _maps(json['destinations'])
-          .map((item) => CatalogItem.fromJson(item, 'destination'))
-          .toList(),
+      activities:
+          _maps(
+            json['activities'],
+          ).map((item) => CatalogItem.fromJson(item, 'activity')).toList(),
+      destinations:
+          _maps(
+            json['destinations'],
+          ).map((item) => CatalogItem.fromJson(item, 'destination')).toList(),
       tours: _maps(json['tours']).map(OperatorTour.fromJson).toList(),
     );
   }

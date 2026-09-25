@@ -6,12 +6,15 @@ import '../services/session_navigation.dart';
 import '../utils/text_case.dart';
 import '../widgets/catalog_home_sections.dart';
 import '../widgets/current_user_avatar.dart';
-import '../widgets/operator_offerings_sections.dart';
 import '../widgets/provider_discovery_sections.dart';
+import 'awards_pages.dart';
 import 'community_page.dart';
 import 'guide_bookings_page.dart';
+import 'guide_team_assignments_page.dart';
+import 'guide_affiliations_page.dart';
 import 'operator_manage_page.dart';
 import 'operator_safari_opportunities_page.dart';
+import 'provider_bookings_hub_page.dart';
 
 class GuideHomePage extends StatefulWidget {
   const GuideHomePage({super.key});
@@ -106,24 +109,20 @@ class _GuideHomePageState extends State<GuideHomePage> {
   }
 
   Future<void> _openTourDetails(_GuideTour tour) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _TourDetailsSheet(
-          tour: tour,
-          onContactPressed: () {
-            Navigator.pop(sheetContext);
-            _showMessage('Contacting ${tour.leadTraveller}...');
-          },
-          onDirectionsPressed: () {
-            Navigator.pop(sheetContext);
-            _showMessage('Directions to ${tour.meetingPoint} opened.');
-          },
-        );
-      },
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder:
+            (_) => _GuideScheduleDetailsPage(
+              tour: tour,
+              onContactPressed: () {
+                _showMessage('Contacting ${tour.leadTraveller}...');
+              },
+              onDirectionsPressed: () {
+                _showMessage('Directions to ${tour.meetingPoint} opened.');
+              },
+            ),
+      ),
     );
   }
 
@@ -250,6 +249,13 @@ class _GuideHomePageState extends State<GuideHomePage> {
     );
   }
 
+  Future<void> _openAwards() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const AwardsHomePage()),
+    );
+  }
+
   Future<void> _openSafariOpportunities() async {
     await Navigator.push<void>(
       context,
@@ -262,13 +268,37 @@ class _GuideHomePageState extends State<GuideHomePage> {
   Future<void> _openGuideBookings() async {
     await Navigator.push<void>(
       context,
-      MaterialPageRoute<void>(builder: (_) => const GuideBookingsPage()),
+      MaterialPageRoute<void>(builder: (_) => const ProviderBookingsHubPage()),
+    );
+  }
+
+  Future<void> _openTeamAssignments() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const GuideTeamAssignmentsPage()),
+    );
+  }
+
+  Future<void> _openGuideAffiliations() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const GuideAffiliationsPage()),
+    );
+  }
+
+  Future<void> _openCarHireVehicles() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder:
+            (_) => const OperatorManagePage(guideMode: true, initialTab: 1),
+      ),
     );
   }
 
   Widget _selectedPage() {
     if (_selectedNavigationIndex == 1) {
-      return const OperatorManagePage(guideMode: true);
+      return const OperatorManagePage(guideMode: true, initialTab: 0);
     }
 
     if (_selectedNavigationIndex == 2) {
@@ -299,6 +329,8 @@ class _GuideHomePageState extends State<GuideHomePage> {
         },
         onSafariOpportunitiesPressed: _openSafariOpportunities,
         onBookingsPressed: _openGuideBookings,
+        onTeamAssignmentsPressed: _openTeamAssignments,
+        onAffiliationsPressed: _openGuideAffiliations,
         onLogout: () {
           signOutAndShowLogin(context);
         },
@@ -336,6 +368,9 @@ class _GuideHomePageState extends State<GuideHomePage> {
       },
       onSafariOpportunitiesPressed: _openSafariOpportunities,
       onBookingsPressed: _openGuideBookings,
+      onCarHireVehiclesPressed: _openCarHireVehicles,
+      onTeamAssignmentsPressed: _openTeamAssignments,
+      onAwardsPressed: _openAwards,
     );
   }
 
@@ -357,9 +392,9 @@ class _GuideHomePageState extends State<GuideHomePage> {
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map_rounded),
-            label: 'Tours',
+            icon: Icon(Icons.tune_rounded),
+            selectedIcon: Icon(Icons.tune_rounded),
+            label: 'Manage',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
@@ -393,6 +428,9 @@ class _GuideDashboard extends StatelessWidget {
     required this.onManageToursPressed,
     required this.onSafariOpportunitiesPressed,
     required this.onBookingsPressed,
+    required this.onCarHireVehiclesPressed,
+    required this.onTeamAssignmentsPressed,
+    required this.onAwardsPressed,
   });
 
   final List<_GuideTour> tours;
@@ -404,6 +442,9 @@ class _GuideDashboard extends StatelessWidget {
   final VoidCallback onManageToursPressed;
   final VoidCallback onSafariOpportunitiesPressed;
   final VoidCallback onBookingsPressed;
+  final VoidCallback onCarHireVehiclesPressed;
+  final VoidCallback onTeamAssignmentsPressed;
+  final VoidCallback onAwardsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -586,18 +627,7 @@ class _GuideDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: FilledButton.icon(
-                onPressed: onManageToursPressed,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text(
-                  'Add or manage guide tours',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
+            _GuideManageServicesCard(onPressed: onManageToursPressed),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -614,12 +644,23 @@ class _GuideDashboard extends StatelessWidget {
                   child: _GuideProviderAction(
                     icon: Icons.receipt_long_outlined,
                     title: 'My Bookings',
-                    subtitle: 'Manage bookings',
+                    subtitle: 'Independent bookings',
                     onPressed: onBookingsPressed,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 11),
+            _GuideProviderAction(
+              icon: Icons.directions_car_outlined,
+              title: 'Car Hire / Vehicles',
+              subtitle: 'Manage your vehicles',
+              onPressed: onCarHireVehiclesPressed,
+            ),
+            const SizedBox(height: 11),
+            _GuideTeamAssignmentAction(onPressed: onTeamAssignmentsPressed),
+            const SizedBox(height: 11),
+            _GuideAwardsAction(onPressed: onAwardsPressed),
             const SizedBox(height: 27),
             Text(
               'Overview',
@@ -674,7 +715,7 @@ class _GuideDashboard extends StatelessWidget {
             ),
             const SizedBox(height: 29),
             _SectionHeading(
-              title: 'Today’s tours',
+              title: 'Today’s assignments',
               actionLabel: 'View schedule',
               onPressed: onViewSchedulePressed,
             ),
@@ -696,8 +737,6 @@ class _GuideDashboard extends StatelessWidget {
             const CatalogHomeSections(),
             const SizedBox(height: 30),
             const ProviderDiscoverySections(),
-            const SizedBox(height: 30),
-            const OperatorOfferingsSections(),
           ],
         ),
       ),
@@ -810,8 +849,8 @@ class _SchedulePage extends StatelessWidget {
             const SizedBox(height: 28),
             Text(
               selectedDayIndex == 0
-                  ? '3 tours scheduled'
-                  : 'No tours scheduled',
+                  ? '3 assignments scheduled'
+                  : 'No assignments scheduled',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w300,
               ),
@@ -845,6 +884,8 @@ class _GuideProfilePage extends StatelessWidget {
     required this.onAvailabilityChanged,
     required this.onSafariOpportunitiesPressed,
     required this.onBookingsPressed,
+    required this.onTeamAssignmentsPressed,
+    required this.onAffiliationsPressed,
     required this.onLogout,
     required this.onPersonalInformationPressed,
     required this.onQualificationsPressed,
@@ -860,6 +901,8 @@ class _GuideProfilePage extends StatelessWidget {
   final ValueChanged<bool> onAvailabilityChanged;
   final VoidCallback onSafariOpportunitiesPressed;
   final VoidCallback onBookingsPressed;
+  final VoidCallback onTeamAssignmentsPressed;
+  final VoidCallback onAffiliationsPressed;
   final VoidCallback onLogout;
   final VoidCallback onPersonalInformationPressed;
   final VoidCallback onQualificationsPressed;
@@ -962,6 +1005,18 @@ class _GuideProfilePage extends StatelessWidget {
                     icon: Icons.receipt_long_outlined,
                     title: 'My Bookings',
                     onTap: onBookingsPressed,
+                  ),
+                  Divider(height: 1, color: theme.dividerColor),
+                  _ProfileTile(
+                    icon: Icons.groups_2_outlined,
+                    title: 'Team Assignments',
+                    onTap: onTeamAssignmentsPressed,
+                  ),
+                  Divider(height: 1, color: theme.dividerColor),
+                  _ProfileTile(
+                    icon: Icons.handshake_outlined,
+                    title: 'My Work & Affiliations',
+                    onTap: onAffiliationsPressed,
                   ),
                   Divider(height: 1, color: theme.dividerColor),
                   _ProfileTile(
@@ -1129,8 +1184,8 @@ class _TourListCard extends StatelessWidget {
   }
 }
 
-class _TourDetailsSheet extends StatelessWidget {
-  const _TourDetailsSheet({
+class _GuideScheduleDetailsPage extends StatelessWidget {
+  const _GuideScheduleDetailsPage({
     required this.tour,
     required this.onContactPressed,
     required this.onDirectionsPressed,
@@ -1149,311 +1204,276 @@ class _TourDetailsSheet extends StatelessWidget {
     final borderColor = colors.outline.withOpacity(isDark ? 0.62 : 0.72);
     final gradientColors = isDark ? tour.darkColors : tour.lightColors;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.88,
-      minChildSize: 0.62,
-      maxChildSize: 0.96,
-      expand: false,
-      builder: (context, scrollController) {
-        return Material(
-          color: colors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: colors.onSurface.withOpacity(0.16),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Safari Assignment',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: gradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.20),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(tour.icon, color: Colors.white, size: 29),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.88),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF2BB673),
+                            size: 15,
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'Confirmed',
+                            style: TextStyle(
+                              color: Color(0xFF195D40),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  tour.title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: Colors.white,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        tour.location,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.90),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Assignment Overview',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            tour.description,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: mutedText,
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 22),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tileWidth = (constraints.maxWidth - 12) / 2;
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: tileWidth,
+                    child: _TourInfoTile(
+                      icon: Icons.calendar_month_outlined,
+                      label: 'Date',
+                      value: tour.date,
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _TourInfoTile(
+                      icon: Icons.schedule_rounded,
+                      label: 'Start time',
+                      value: tour.time,
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _TourInfoTile(
+                      icon: Icons.timelapse_rounded,
+                      label: 'Duration',
+                      value: tour.duration,
+                    ),
+                  ),
+                  SizedBox(
+                    width: tileWidth,
+                    child: _TourInfoTile(
+                      icon: Icons.groups_rounded,
+                      label: 'Group size',
+                      value: '${tour.guests} guests',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Meeting Point',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.primary.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colors.primary.withOpacity(0.20)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: colors.primary.withOpacity(0.13),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.pin_drop_outlined, color: colors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    tour.meetingPoint,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 23,
+                  backgroundColor: colors.secondary.withOpacity(0.13),
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    color: colors.secondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: gradientColors,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 54,
-                                  height: 54,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.20),
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  child: Icon(
-                                    tour.icon,
-                                    color: Colors.white,
-                                    size: 29,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 11,
-                                    vertical: 7,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.88),
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.check_circle_rounded,
-                                        color: Color(0xFF2BB673),
-                                        size: 15,
-                                      ),
-                                      SizedBox(width: 5),
-                                      Text(
-                                        'Confirmed',
-                                        style: TextStyle(
-                                          color: Color(0xFF195D40),
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 22),
-                            Text(
-                              tour.title,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w300,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
-                            const SizedBox(height: 7),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.location_on_outlined,
-                                  color: Colors.white,
-                                  size: 17,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    tour.location,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withOpacity(0.90),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
                       Text(
-                        'Tour Overview',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        tour.description,
+                        tour.leadTraveller,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: mutedText,
-                          height: 1.55,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 22),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final tileWidth = (constraints.maxWidth - 12) / 2;
-
-                          return Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              SizedBox(
-                                width: tileWidth,
-                                child: _TourInfoTile(
-                                  icon: Icons.calendar_month_outlined,
-                                  label: 'Date',
-                                  value: tour.date,
-                                ),
-                              ),
-                              SizedBox(
-                                width: tileWidth,
-                                child: _TourInfoTile(
-                                  icon: Icons.schedule_rounded,
-                                  label: 'Start time',
-                                  value: tour.time,
-                                ),
-                              ),
-                              SizedBox(
-                                width: tileWidth,
-                                child: _TourInfoTile(
-                                  icon: Icons.timelapse_rounded,
-                                  label: 'Duration',
-                                  value: tour.duration,
-                                ),
-                              ),
-                              SizedBox(
-                                width: tileWidth,
-                                child: _TourInfoTile(
-                                  icon: Icons.groups_rounded,
-                                  label: 'Group size',
-                                  value: '${tour.guests} guests',
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 2),
                       Text(
-                        'Meeting Point',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.primary.withOpacity(0.09),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: colors.primary.withOpacity(0.20),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: colors.primary.withOpacity(0.13),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                Icons.pin_drop_outlined,
-                                color: colors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                tour.meetingPoint,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 23,
-                              backgroundColor: colors.secondary.withOpacity(
-                                0.13,
-                              ),
-                              child: Icon(
-                                Icons.person_outline_rounded,
-                                color: colors.secondary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    tour.leadTraveller,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Lead traveller • ${tour.bookingReference}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: mutedText,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: FilledButton.icon(
-                          onPressed: onContactPressed,
-                          icon: const Icon(Icons.call_outlined),
-                          label: const Text(
-                            'Contact Traveller',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 11),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: OutlinedButton.icon(
-                          onPressed: onDirectionsPressed,
-                          icon: const Icon(Icons.directions_outlined),
-                          label: const Text(
-                            'Open Directions',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
+                        'Lead traveller • ${tour.bookingReference}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: mutedText,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: FilledButton.icon(
+              onPressed: onContactPressed,
+              icon: const Icon(Icons.call_outlined),
+              label: const Text(
+                'Contact Traveller',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 11),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: onDirectionsPressed,
+              icon: const Icon(Icons.directions_outlined),
+              label: const Text(
+                'Open Directions',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2797,6 +2817,156 @@ class _TourDetail extends StatelessWidget {
   }
 }
 
+class _GuideAwardsAction extends StatelessWidget {
+  const _GuideAwardsAction({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = colors.outline.withValues(alpha: isDark ? 0.62 : 0.72);
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: colors.secondary.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.workspace_premium_rounded,
+                  color: colors.secondary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tourist Guide Awards',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'View categories, finalists and winners',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withValues(alpha: .60),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: colors.onSurface.withValues(alpha: .38),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideManageServicesCard extends StatelessWidget {
+  const _GuideManageServicesCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = colors.outline.withValues(alpha: isDark ? 0.62 : 0.72);
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(17),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.tune_rounded,
+                  color: colors.primary,
+                  size: 25,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Manage Services',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Manage your guide tours and car hire vehicles',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withValues(alpha: .60),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: colors.onSurface.withValues(alpha: .36),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GuideProviderAction extends StatelessWidget {
   const _GuideProviderAction({
     required this.icon,
@@ -2859,6 +3029,80 @@ class _GuideProviderAction extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colors.onSurface.withValues(alpha: 0.60),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideTeamAssignmentAction extends StatelessWidget {
+  const _GuideTeamAssignmentAction({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = colors.outline.withValues(alpha: isDark ? 0.62 : 0.72);
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: colors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  Icons.groups_2_outlined,
+                  color: colors.secondary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Team Assignments',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Safaris assigned to you by tour operators',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withValues(alpha: 0.60),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: colors.onSurface.withValues(alpha: 0.38),
+                size: 16,
               ),
             ],
           ),
@@ -3038,7 +3282,7 @@ class _InlineEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'There are no tours scheduled for this day.',
+            'There are no safari assignments scheduled for this day.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurface.withOpacity(0.62),

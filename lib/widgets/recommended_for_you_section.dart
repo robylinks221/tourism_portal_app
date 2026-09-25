@@ -2,16 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../models/discovery_item.dart';
 import '../models/operator_management.dart';
+import '../models/catalog_item.dart';
+import '../pages/tour_details_page.dart';
 import '../services/discovery_store.dart';
+import '../services/catalog_service.dart';
 import '../services/operator_offerings_service.dart';
 import 'app_ui.dart';
 import 'guest_access_sheet.dart';
 import 'premium_states.dart';
 
 class RecommendedForYouSection extends StatefulWidget {
-  const RecommendedForYouSection({super.key, this.isGuest = false});
+  const RecommendedForYouSection({
+    super.key,
+    this.isGuest = false,
+    this.countryName,
+  });
 
   final bool isGuest;
+  final String? countryName;
 
   @override
   State<RecommendedForYouSection> createState() =>
@@ -20,23 +28,26 @@ class RecommendedForYouSection extends StatefulWidget {
 
 class _RecommendedForYouSectionState extends State<RecommendedForYouSection> {
   late Future<OperatorOfferings> _offerings;
+  late Future<TourismCatalog> _catalog;
 
   @override
   void initState() {
     super.initState();
     _offerings = OperatorOfferingsService.instance.fetch();
+    _catalog = CatalogService.instance.fetchCatalog();
   }
 
   void _retry() {
     setState(() {
       _offerings = OperatorOfferingsService.instance.fetch();
+      _catalog = CatalogService.instance.fetchCatalog();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<OperatorOfferings>(
-      future: _offerings,
+    return FutureBuilder<List<Object>>(
+      future: Future.wait<Object>([_offerings, _catalog]),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Column(
@@ -61,8 +72,24 @@ class _RecommendedForYouSectionState extends State<RecommendedForYouSection> {
           );
         }
 
-        final allTours =
-            snapshot.data!.tours.where((tour) => tour.isActive).toList();
+        final offerings = snapshot.data![0] as OperatorOfferings;
+        final catalog = snapshot.data![1] as TourismCatalog;
+        final country = widget.countryName?.trim().toLowerCase();
+        final destinationIds = country == null || country.isEmpty
+            ? <int>{}
+            : catalog.destinations
+                .where(
+                  (destination) =>
+                      (destination.country ?? '').trim().toLowerCase() ==
+                      country,
+                )
+                .map((destination) => destination.id)
+                .toSet();
+        final allTours = offerings.tours.where((tour) {
+          if (!tour.isActive) return false;
+          if (country == null || country.isEmpty) return true;
+          return tour.destinationIds.any(destinationIds.contains);
+        }).toList();
 
         if (allTours.isEmpty) {
           return const SizedBox.shrink();
@@ -381,12 +408,9 @@ class _RecommendedTourCard extends StatelessWidget {
       return;
     }
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _RecommendedTourSheet(tour: tour),
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => TourDetailsPage(tour: tour)),
     );
   }
 }
@@ -535,161 +559,6 @@ class _SaveTourButton extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _RecommendedTourSheet extends StatelessWidget {
-  const _RecommendedTourSheet({required this.tour});
-
-  final OperatorTour tour;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: .82,
-      minChildSize: .52,
-      maxChildSize: .95,
-      builder:
-          (context, controller) => Material(
-            color: colors.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            clipBehavior: Clip.antiAlias,
-            child: ListView(
-              controller: controller,
-              padding: EdgeInsets.zero,
-              children: [
-                SizedBox(
-                  height: 270,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _TourImage(tour: tour),
-                      const DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, Color(0xB0000000)],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 14,
-                        top: 14,
-                        child: Material(
-                          color: Colors.black.withOpacity(.42),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                        child: Text(
-                          tour.name,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 34),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Chip(
-                            avatar: const Icon(
-                              Icons.schedule_rounded,
-                              size: 17,
-                            ),
-                            label: Text(
-                              '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
-                            ),
-                          ),
-                          if (tour.operatorName.isNotEmpty)
-                            Chip(
-                              avatar: Icon(
-                                tour.isGuideLed
-                                    ? Icons.person_outline_rounded
-                                    : Icons.business_outlined,
-                                size: 17,
-                              ),
-                              label: Text(tour.operatorName),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _price(tour),
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: colors.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (tour.destinationNames.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        Text(
-                          'Destinations',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(tour.destinationNames.join(' • ')),
-                      ],
-                      if (tour.activityNames.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        Text(
-                          'Safari activities',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(tour.activityNames.join(' • ')),
-                      ],
-                      if (tour.overview.trim().isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        Text(
-                          'About this safari',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          tour.overview,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            height: 1.55,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
     );
   }
 }

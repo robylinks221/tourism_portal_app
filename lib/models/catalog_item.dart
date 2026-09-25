@@ -57,7 +57,8 @@ class CatalogItem {
 
   bool get isActivity => type == 'activity';
   String get imageUrl => AuthService.storageUrl(image);
-  List<int> get destinationIds => destinations.map((destination) => destination.id).toList();
+  List<int> get destinationIds =>
+      destinations.map((destination) => destination.id).toList();
 
   factory CatalogItem.fromJson(Map<String, dynamic> json, String type) {
     return CatalogItem(
@@ -100,7 +101,9 @@ class CatalogItem {
     if (value is! List) return const [];
     return value
         .whereType<Map>()
-        .map((item) => CatalogItem.fromJson(Map<String, dynamic>.from(item), type))
+        .map(
+          (item) => CatalogItem.fromJson(Map<String, dynamic>.from(item), type),
+        )
         .toList();
   }
 
@@ -108,9 +111,9 @@ class CatalogItem {
     if (value is! List) return const [];
     return value
         .whereType<Map>()
-        .map((item) => CommunityMember.fromJson(
-              Map<String, dynamic>.from(item),
-            ))
+        .map(
+          (item) => CommunityMember.fromJson(Map<String, dynamic>.from(item)),
+        )
         .toList();
   }
 
@@ -173,11 +176,18 @@ class Accommodation {
   List<String> get galleryUrls {
     final paths = <String>{
       if (image?.trim().isNotEmpty == true) image!.trim(),
-      ...gallery.where((path) => path.trim().isNotEmpty).map((path) => path.trim()),
+      ...gallery
+          .where((path) => path.trim().isNotEmpty)
+          .map((path) => path.trim()),
     };
-    return paths.map(AuthService.storageUrl).where((url) => url.isNotEmpty).toList();
+    return paths
+        .map(AuthService.storageUrl)
+        .where((url) => url.isNotEmpty)
+        .toList();
   }
-  String get formattedPrice => '\$${pricePerNight.toStringAsFixed(pricePerNight.truncateToDouble() == pricePerNight ? 0 : 2)} / night';
+
+  String get formattedPrice =>
+      '\$${pricePerNight.toStringAsFixed(pricePerNight.truncateToDouble() == pricePerNight ? 0 : 2)} / night';
 
   factory Accommodation.fromJson(Map<String, dynamic> json) {
     final amenities = json['amenities'];
@@ -189,9 +199,13 @@ class Accommodation {
       description: json['description']?.toString() ?? '',
       image: json['image']?.toString(),
       gallery: _strings(json['gallery']),
-      pricePerNight: double.tryParse(json['price_per_night']?.toString() ?? '') ?? 0,
+      pricePerNight:
+          double.tryParse(json['price_per_night']?.toString() ?? '') ?? 0,
       currency: json['currency']?.toString() ?? 'USD',
-      amenities: amenities is List ? amenities.map((item) => item.toString()).toList() : const [],
+      amenities:
+          amenities is List
+              ? amenities.map((item) => item.toString()).toList()
+              : const [],
       contactPhone: json['contact_phone']?.toString(),
       contactEmail: json['contact_email']?.toString(),
       website: json['website']?.toString(),
@@ -201,7 +215,10 @@ class Accommodation {
 
   static List<String> _strings(dynamic value) {
     if (value is! List) return const [];
-    return value.map((item) => item.toString()).where((item) => item.isNotEmpty).toList();
+    return value
+        .map((item) => item.toString())
+        .where((item) => item.isNotEmpty)
+        .toList();
   }
 }
 

@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/operator_management.dart';
 
 class SafariTrail extends StatelessWidget {
-  const SafariTrail({
-    super.key,
-    required this.stops,
-    this.accent,
-  });
+  const SafariTrail({super.key, required this.stops, this.accent});
 
   final List<TourItineraryStop> stops;
   final Color? accent;
@@ -103,10 +99,7 @@ class _TrailStop extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: accent,
                     borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: colors.surface,
-                      width: 3,
-                    ),
+                    border: Border.all(color: colors.surface, width: 3),
                     boxShadow: [
                       BoxShadow(
                         color: accent.withOpacity(.22),

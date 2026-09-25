@@ -15,7 +15,8 @@ class AdminProviderVerificationPage extends StatefulWidget {
 
 class _AdminProviderVerificationPageState
     extends State<AdminProviderVerificationPage> {
-  late Future<AdminProviderQueue> _queue = AdminProviderService.instance.fetch();
+  late Future<AdminProviderQueue> _queue =
+      AdminProviderService.instance.fetch();
   String _filter = 'pending';
 
   void _reload() {
@@ -32,62 +33,74 @@ class _AdminProviderVerificationPageState
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            20,
-            18,
-            20,
-            MediaQuery.viewInsetsOf(context).bottom + 28,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Review ${provider.name}',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w300,
-                      ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Confirm identity, licences and supplied professional information before approving.',
-                ),
-                const SizedBox(height: 20),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'pending', label: Text('Pending')),
-                    ButtonSegment(value: 'verified', label: Text('Verify')),
-                    ButtonSegment(value: 'rejected', label: Text('Reject')),
-                  ],
-                  selected: {status},
-                  onSelectionChanged: (value) =>
-                      setSheetState(() => status = value.first),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  controller: notes,
-                  minLines: 4,
-                  maxLines: 7,
-                  maxLength: 2000,
-                  decoration: const InputDecoration(
-                    labelText: 'Administrative review notes',
-                    hintText: 'Record what was checked and why this decision was made.',
-                    alignLabelWithHint: true,
+      builder:
+          (sheetContext) => StatefulBuilder(
+            builder:
+                (context, setSheetState) => Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    18,
+                    20,
+                    MediaQuery.viewInsetsOf(context).bottom + 28,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Review ${provider.name}',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w300),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Confirm identity, licences and supplied professional information before approving.',
+                        ),
+                        const SizedBox(height: 20),
+                        SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(
+                              value: 'pending',
+                              label: Text('Pending'),
+                            ),
+                            ButtonSegment(
+                              value: 'verified',
+                              label: Text('Verify'),
+                            ),
+                            ButtonSegment(
+                              value: 'rejected',
+                              label: Text('Reject'),
+                            ),
+                          ],
+                          selected: {status},
+                          onSelectionChanged:
+                              (value) =>
+                                  setSheetState(() => status = value.first),
+                        ),
+                        const SizedBox(height: 18),
+                        TextField(
+                          controller: notes,
+                          minLines: 4,
+                          maxLines: 7,
+                          maxLength: 2000,
+                          decoration: const InputDecoration(
+                            labelText: 'Administrative review notes',
+                            hintText:
+                                'Record what was checked and why this decision was made.',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () => Navigator.pop(sheetContext, true),
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('Save review decision'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => Navigator.pop(sheetContext, true),
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: const Text('Save review decision'),
-                ),
-              ],
-            ),
           ),
-        ),
-      ),
     );
     if (save != true) {
       notes.dispose();
@@ -101,16 +114,16 @@ class _AdminProviderVerificationPageState
         notes: notes.text,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Provider review saved.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Provider review saved.')));
         _reload();
       }
     } on ApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
       }
     } finally {
       notes.dispose();
@@ -138,7 +151,10 @@ class _AdminProviderVerificationPageState
                     const SizedBox(height: 12),
                     const Text('Provider reviews could not be loaded.'),
                     const SizedBox(height: 12),
-                    OutlinedButton(onPressed: _reload, child: const Text('Try again')),
+                    OutlinedButton(
+                      onPressed: _reload,
+                      child: const Text('Try again'),
+                    ),
                   ],
                 ),
               ),
@@ -146,9 +162,14 @@ class _AdminProviderVerificationPageState
           }
 
           final queue = snapshot.data!;
-          final visible = queue.providers
-              .where((provider) => _filter == 'all' || provider.verificationStatus == _filter)
-              .toList();
+          final visible =
+              queue.providers
+                  .where(
+                    (provider) =>
+                        _filter == 'all' ||
+                        provider.verificationStatus == _filter,
+                  )
+                  .toList();
           return RefreshIndicator(
             onRefresh: () async {
               _reload();
@@ -169,8 +190,8 @@ class _AdminProviderVerificationPageState
                       ButtonSegment(value: 'all', label: Text('All')),
                     ],
                     selected: {_filter},
-                    onSelectionChanged: (value) =>
-                        setState(() => _filter = value.first),
+                    onSelectionChanged:
+                        (value) => setState(() => _filter = value.first),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -211,12 +232,19 @@ class _VerificationOverview extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.verified_user_outlined, color: Colors.white, size: 38),
+          const Icon(
+            Icons.verified_user_outlined,
+            color: Colors.white,
+            size: 38,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               '${queue.pending} pending  •  ${queue.verified} verified  •  ${queue.rejected} rejected',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -258,23 +286,36 @@ class _ProviderReviewCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 27,
                     backgroundImage:
-                        provider.photoUrl.isEmpty ? null : NetworkImage(provider.photoUrl),
-                    child: provider.photoUrl.isEmpty
-                        ? Icon(provider.isGuide ? Icons.hiking_rounded : Icons.business_rounded)
-                        : null,
+                        provider.photoUrl.isEmpty
+                            ? null
+                            : NetworkImage(provider.photoUrl),
+                    child:
+                        provider.photoUrl.isEmpty
+                            ? Icon(
+                              provider.isGuide
+                                  ? Icons.hiking_rounded
+                                  : Icons.business_rounded,
+                            )
+                            : null,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(provider.name, style: const TextStyle(fontWeight: FontWeight.w900)),
+                        Text(
+                          provider.name,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
                         Text('${provider.roleLabel} • ${provider.country}'),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(.12),
                       borderRadius: BorderRadius.circular(999),
@@ -300,8 +341,12 @@ class _ProviderReviewCard extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               Text(
-                provider.languages.isEmpty ? 'No languages supplied' : provider.languages.join(' • '),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
+                provider.languages.isEmpty
+                    ? 'No languages supplied'
+                    : provider.languages.join(' • '),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -315,32 +360,31 @@ class _VerificationLoading extends StatelessWidget {
   const _VerificationLoading();
   @override
   Widget build(BuildContext context) => ListView.builder(
-        padding: const EdgeInsets.all(18),
-        itemCount: 6,
-        itemBuilder: (_, index) => Padding(
+    padding: const EdgeInsets.all(18),
+    itemCount: 6,
+    itemBuilder:
+        (_, index) => Padding(
           padding: const EdgeInsets.only(bottom: 13),
-          child: PremiumSkeleton(
-            height: index == 0 ? 110 : 128,
-          ),
+          child: PremiumSkeleton(height: index == 0 ? 110 : 128),
         ),
-      );
+  );
 }
 
 class _VerificationEmpty extends StatelessWidget {
   const _VerificationEmpty();
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: const Column(
-          children: [
-            Icon(Icons.fact_check_outlined, size: 54),
-            SizedBox(height: 10),
-            Text('No providers in this review state.'),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.all(28),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: const Column(
+      children: [
+        Icon(Icons.fact_check_outlined, size: 54),
+        SizedBox(height: 10),
+        Text('No providers in this review state.'),
+      ],
+    ),
+  );
 }

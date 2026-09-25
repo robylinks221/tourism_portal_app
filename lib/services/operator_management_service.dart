@@ -21,11 +21,7 @@ class OperatorManagementService {
   }
 
   Future<void> setCarHireEnabled(bool enabled) async {
-    await _request(
-      'POST',
-      '/operator/car-hire',
-      body: {'enabled': enabled},
-    );
+    await _request('POST', '/operator/car-hire', body: {'enabled': enabled});
   }
 
   Future<void> saveTour({
@@ -86,13 +82,14 @@ class OperatorManagementService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      final response = method == 'GET'
-          ? await http.get(uri, headers: headers).timeout(
-              const Duration(seconds: 20),
-            )
-          : await http
-                .post(uri, headers: headers, body: jsonEncode(body))
-                .timeout(const Duration(seconds: 20));
+      final response =
+          method == 'GET'
+              ? await http
+                  .get(uri, headers: headers)
+                  .timeout(const Duration(seconds: 20))
+              : await http
+                  .post(uri, headers: headers, body: jsonEncode(body))
+                  .timeout(const Duration(seconds: 20));
       return _decode(response);
     } on ApiEndpointUnavailable {
       throw const ApiException(
@@ -122,15 +119,13 @@ class OperatorManagementService {
 
     try {
       requestBaseUrl = await AuthService.instance.resolveBaseUrl();
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$requestBaseUrl$path'),
-      )
-        ..headers.addAll({
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        })
-        ..fields.addAll(fields);
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
+            ..headers.addAll({
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            })
+            ..fields.addAll(fields);
 
       for (final entry in lists.entries) {
         if (entry.value.isEmpty) {
@@ -176,16 +171,20 @@ class OperatorManagementService {
 
     try {
       requestBaseUrl = await AuthService.instance.resolveBaseUrl();
-      final response = await http.delete(
-        Uri.parse('$requestBaseUrl$path'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .delete(
+            Uri.parse('$requestBaseUrl$path'),
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 20));
       _decode(response);
     } on ApiEndpointUnavailable {
-      throw const ApiException('Cannot delete this item. Check the API connection.');
+      throw const ApiException(
+        'Cannot delete this item. Check the API connection.',
+      );
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
       throw const ApiException('The delete connection was interrupted.');
@@ -200,12 +199,12 @@ class OperatorManagementService {
   }
 
   Map<String, dynamic> _decode(http.Response response) {
-    final decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body);
-    final data = decoded is Map
-        ? Map<String, dynamic>.from(decoded)
-        : <String, dynamic>{};
+    final decoded =
+        response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final data =
+        decoded is Map
+            ? Map<String, dynamic>.from(decoded)
+            : <String, dynamic>{};
 
     if (response.statusCode >= 200 && response.statusCode < 300) return data;
 

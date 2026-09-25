@@ -8,14 +8,19 @@ import '../utils/text_case.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/catalog_home_sections.dart';
 import '../widgets/current_user_avatar.dart';
+import '../widgets/country_discovery_section.dart';
+import '../widgets/multi_country_safaris_section.dart';
 import '../widgets/operator_offerings_sections.dart';
 import '../widgets/provider_discovery_sections.dart';
 import '../widgets/recommended_for_you_section.dart';
 
+import 'awards_pages.dart';
 import 'community_page.dart';
 import 'discovery_page.dart';
 import 'my_safari_requests_page.dart';
 import 'safari_builder_page.dart';
+import 'tourist_bookings_page.dart';
+import 'tourist_bookings_hub_page.dart';
 
 class TouristHomePage extends StatefulWidget {
   const TouristHomePage({super.key, this.isGuest = false});
@@ -68,6 +73,32 @@ class _TouristHomePageState extends State<TouristHomePage> {
     );
   }
 
+  void _openAwards() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => AwardsHomePage(isGuest: widget.isGuest),
+      ),
+    );
+  }
+
+  void _openMyBookings() {
+    if (widget.isGuest) {
+      _showGuestAccountSheet(
+        context,
+        title: 'View your safari bookings',
+        message:
+            'Login or create an account to view and manage your safari bookings.',
+      );
+      return;
+    }
+
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const TouristBookingsHubPage()),
+    );
+  }
+
   Widget _selectedPage() {
     if (_selectedNavigationIndex == 1) {
       return DiscoveryPage(
@@ -100,6 +131,7 @@ class _TouristHomePageState extends State<TouristHomePage> {
         onEditAccount: () => openEditAccount(context),
         onDeleteAccount: () => confirmDeleteAccount(context),
         onMySafariRequests: _openMySafariRequests,
+        onMyBookings: _openMyBookings,
       );
     }
 
@@ -117,6 +149,7 @@ class _TouristHomePageState extends State<TouristHomePage> {
       },
       onBuildSafari: _openSafariBuilder,
       onMySafariRequests: _openMySafariRequests,
+      onAwardsPressed: _openAwards,
     );
   }
 
@@ -228,6 +261,7 @@ class _HomePage extends StatelessWidget {
     required this.onNotificationPressed,
     required this.onBuildSafari,
     required this.onMySafariRequests,
+    required this.onAwardsPressed,
   });
 
   final bool isGuest;
@@ -239,6 +273,8 @@ class _HomePage extends StatelessWidget {
   final VoidCallback onBuildSafari;
 
   final VoidCallback onMySafariRequests;
+
+  final VoidCallback onAwardsPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -385,6 +421,16 @@ class _HomePage extends StatelessWidget {
             // ======================================================
             const SafariBuilderBanner(),
 
+            const SizedBox(height: 24),
+
+            _AwardsAccessCard(onPressed: onAwardsPressed),
+
+            const SizedBox(height: 30),
+
+            CountryDiscoverySection(isGuest: isGuest),
+            const SizedBox(height: 30),
+
+            MultiCountrySafarisSection(isGuest: isGuest),
             const SizedBox(height: 30),
 
             const CatalogHomeSections(),
@@ -401,104 +447,77 @@ class _HomePage extends StatelessWidget {
             const OperatorOfferingsSections(),
 
             const SizedBox(height: 30),
-
-            const AppSectionHeader(title: 'Your next adventure'),
-
-            const SizedBox(height: 14),
-
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.16 : 0.04),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 78,
-                    height: 92,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors:
-                            isDark
-                                ? const [Color(0xFF285048), Color(0xFF1C3834)]
-                                : const [Color(0xFFC9EFE5), Color(0xFF75C7B1)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(19),
-                    ),
-                    child: Icon(
-                      Icons.kayaking_rounded,
-                      color: isDark ? const Color(0xFF83E5D6) : Colors.white,
-                      size: 39,
-                    ),
-                  ),
-
-                  const SizedBox(width: 15),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Jinja Adventure',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-
-                        const SizedBox(height: 5),
-
-                        Text(
-                          '15–17 August • 3 days',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: mutedText,
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.event_available_rounded,
-                              color: colors.primary,
-                              size: 17,
-                            ),
-
-                            const SizedBox(width: 5),
-
-                            Text(
-                              'Trip planned',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: colors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: mutedText,
-                    size: 17,
-                  ),
-                ],
-              ),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AwardsAccessCard extends StatelessWidget {
+  const _AwardsAccessCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Material(
+      color: colors.surface,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: colors.primary.withValues(alpha: .18)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: colors.secondary.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Icon(
+                  Icons.workspace_premium_rounded,
+                  color: colors.secondary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tourist Guide Awards',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Discover finalists, categories and award winners.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurface.withValues(alpha: .62),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, color: colors.primary),
+            ],
+          ),
         ),
       ),
     );
@@ -518,6 +537,7 @@ class _ProfilePage extends StatelessWidget {
     required this.onEditAccount,
     required this.onDeleteAccount,
     required this.onMySafariRequests,
+    required this.onMyBookings,
   });
 
   final bool isGuest;
@@ -527,6 +547,7 @@ class _ProfilePage extends StatelessWidget {
   final VoidCallback onEditAccount;
   final VoidCallback onDeleteAccount;
   final VoidCallback onMySafariRequests;
+  final VoidCallback onMyBookings;
 
   @override
   Widget build(BuildContext context) {
@@ -545,19 +566,28 @@ class _ProfilePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
         child: Column(
           children: [
-            Container(
-              width: 92,
-              height: 92,
-              decoration: BoxDecoration(
-                color: colors.primary.withOpacity(isDark ? 0.18 : 0.13),
-                shape: BoxShape.circle,
+            if (isGuest)
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: colors.primary.withOpacity(isDark ? 0.18 : 0.13),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: colors.primary,
+                  size: 48,
+                ),
+              )
+            else
+              CurrentUserAvatar(
+                radius: 46,
+                backgroundColor: colors.primary.withOpacity(
+                  isDark ? 0.18 : 0.13,
+                ),
+                foregroundColor: colors.primary,
               ),
-              child: Icon(
-                Icons.person_rounded,
-                color: colors.primary,
-                size: 48,
-              ),
-            ),
 
             const SizedBox(height: 14),
 
@@ -609,10 +639,11 @@ class _ProfilePage extends StatelessWidget {
 
                     _ProfileTile(
                       icon: Icons.receipt_long_outlined,
-                      title: 'My bookings',
-                      onTap: () {},
+                      title: 'My Bookings',
+                      onTap: onMyBookings,
                     ),
 
+                    Divider(height: 1, color: theme.dividerColor),
                     Divider(height: 1, color: theme.dividerColor),
 
                     _ProfileTile(

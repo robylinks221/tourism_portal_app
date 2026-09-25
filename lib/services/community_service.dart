@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../models/community.dart';
+import '../models/guide_affiliation.dart';
 import 'api_endpoint_resolver.dart';
 import 'api_exception.dart';
 import 'auth_service.dart';
@@ -95,6 +96,220 @@ class CommunityService {
     }
 
     return CommunityMember.fromJson(Map<String, dynamic>.from(member));
+  }
+
+  // ==============================================================
+  // GUIDE / OPERATOR AFFILIATIONS
+  // ==============================================================
+
+  Future<List<CommunityMember>> searchTourOperators(String query) async {
+    final value = query.trim();
+
+    if (value.length < 2) {
+      return const [];
+    }
+
+    final data = await _request(
+      'GET',
+      '/guide/operators/search?q=${Uri.encodeQueryComponent(value)}',
+    );
+
+    final operators = data['operators'];
+
+    if (operators is! List) {
+      return const [];
+    }
+
+    return operators
+        .whereType<Map>()
+        .map(
+          (item) => CommunityMember.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .where((member) => member.id > 0)
+        .toList();
+  }
+
+  Future<GuideAffiliationSummary> fetchGuideAffiliations() async {
+    final data = await _request('GET', '/guide/affiliations');
+
+    return GuideAffiliationSummary.fromJson(data);
+  }
+
+  Future<GuideOperatorAffiliation> requestGuideAffiliation({
+    required int operatorUserId,
+    required String relationshipType,
+    required String publicVisibility,
+  }) async {
+    final data = await _request(
+      'POST',
+      '/guide/affiliations/request',
+      body: {
+        'operator_user_id': operatorUserId,
+        'relationship_type': relationshipType,
+        'public_visibility': publicVisibility,
+      },
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> acceptOperatorInvitation(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/guide/affiliations/$affiliationId/accept',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> declineOperatorInvitation(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/guide/affiliations/$affiliationId/decline',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> updateGuideAffiliationVisibility({
+    required int affiliationId,
+    required String publicVisibility,
+  }) async {
+    final data = await _request(
+      'POST',
+      '/guide/affiliations/$affiliationId/visibility',
+      body: {'public_visibility': publicVisibility},
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> endGuideAffiliation(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/guide/affiliations/$affiliationId/end',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<List<CommunityMember>> searchTouristGuides(String query) async {
+    final value = query.trim();
+
+    if (value.length < 2) {
+      return const [];
+    }
+
+    final data = await _request(
+      'GET',
+      '/operator/guides/search?q=${Uri.encodeQueryComponent(value)}',
+    );
+
+    final guides = data['guides'];
+
+    if (guides is! List) {
+      return const [];
+    }
+
+    return guides
+        .whereType<Map>()
+        .map(
+          (item) => CommunityMember.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .where((member) => member.id > 0)
+        .toList();
+  }
+
+  Future<OperatorGuideTeamSummary> fetchOperatorGuideTeam() async {
+    final data = await _request('GET', '/operator/guide-team');
+
+    return OperatorGuideTeamSummary.fromJson(data);
+  }
+
+  Future<GuideOperatorAffiliation> inviteGuideToOperator({
+    required int guideUserId,
+    required String relationshipType,
+    required String publicVisibility,
+  }) async {
+    final data = await _request(
+      'POST',
+      '/operator/guide-team/invite',
+      body: {
+        'guide_user_id': guideUserId,
+        'relationship_type': relationshipType,
+        'public_visibility': publicVisibility,
+      },
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> acceptGuideAffiliationRequest(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/operator/guide-team/$affiliationId/accept',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> declineGuideAffiliationRequest(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/operator/guide-team/$affiliationId/decline',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> updateOperatorGuidePermissions({
+    required int affiliationId,
+    required String relationshipType,
+  }) async {
+    final data = await _request(
+      'POST',
+      '/operator/guide-team/$affiliationId/permissions',
+      body: {'relationship_type': relationshipType},
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  Future<GuideOperatorAffiliation> endOperatorGuideAffiliation(
+    int affiliationId,
+  ) async {
+    final data = await _request(
+      'POST',
+      '/operator/guide-team/$affiliationId/end',
+    );
+
+    return _affiliationFromResponse(data);
+  }
+
+  static GuideOperatorAffiliation _affiliationFromResponse(
+    Map<String, dynamic> data,
+  ) {
+    final affiliation = data['affiliation'];
+
+    if (affiliation is! Map) {
+      throw const ApiException(
+        'The affiliation response could not be understood.',
+      );
+    }
+
+    return GuideOperatorAffiliation.fromJson(
+      Map<String, dynamic>.from(affiliation),
+    );
   }
 
   // ==============================================================

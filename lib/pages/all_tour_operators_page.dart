@@ -70,10 +70,11 @@ class _AllTourOperatorsPageState extends State<AllTourOperatorsPage> {
 
       final isGuest = currentUser == null;
 
-      final providers =
-          isGuest
-              ? await CommunityService.instance.fetchGuestProviders()
-              : await CommunityService.instance.fetchFeaturedProviders();
+      final operators = isGuest
+          ? (await CommunityService.instance.fetchGuestProviders()).operators
+          : (await CommunityService.instance.fetchMembers())
+              .where((member) => member.isOperator)
+              .toList();
 
       if (!mounted) {
         return;
@@ -81,11 +82,8 @@ class _AllTourOperatorsPageState extends State<AllTourOperatorsPage> {
 
       setState(() {
         _isGuest = isGuest;
-
-        _allOperators = providers.operators;
-
-        _filteredOperators = providers.operators;
-
+        _allOperators = operators;
+        _filteredOperators = operators;
         _loading = false;
       });
 

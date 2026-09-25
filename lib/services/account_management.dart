@@ -15,24 +15,25 @@ Future<void> openEditAccount(BuildContext context) async {
 Future<void> confirmDeleteAccount(BuildContext context) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      icon: const Icon(Icons.delete_forever_outlined, color: Colors.red),
-      title: const Text('Delete account?'),
-      content: const Text(
-        'This permanently removes your account, completed profile, and saved profile images. This action cannot be undone.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('Cancel'),
+    builder:
+        (dialogContext) => AlertDialog(
+          icon: const Icon(Icons.delete_forever_outlined, color: Colors.red),
+          title: const Text('Delete account?'),
+          content: const Text(
+            'This permanently removes your account, completed profile, and saved profile images. This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Delete Account'),
+            ),
+          ],
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: Colors.red),
-          onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('Delete Account'),
-        ),
-      ],
-    ),
   );
 
   if (confirmed != true || !context.mounted) return;
@@ -54,8 +55,8 @@ Future<void> confirmDeleteAccount(BuildContext context) async {
   } on ApiException catch (error) {
     if (!context.mounted) return;
     Navigator.of(context, rootNavigator: true).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.message)));
   }
 }

@@ -35,7 +35,8 @@ class SafariMood {
 
   String get imageUrl => AuthService.storageUrl(image);
   Color get primaryColor => _color(primaryColorHex, const Color(0xFF1F6B5C));
-  Color get secondaryColor => _color(secondaryColorHex, const Color(0xFF123F38));
+  Color get secondaryColor =>
+      _color(secondaryColorHex, const Color(0xFF123F38));
   int get assignmentCount => activityCount + destinationCount + tourCount;
 
   IconData get icon {
@@ -94,12 +95,72 @@ class SafariMood {
 }
 
 const fallbackSafariMoods = <SafariMood>[
-  SafariMood(id: -1, key: 'primates', title: 'Meet the primates', subtitle: 'Gorillas, chimpanzees and forest encounters', iconKey: 'forest', primaryColorHex: '#2A6A4F', secondaryColorHex: '#123B32', isActive: true, sortOrder: 0),
-  SafariMood(id: -2, key: 'big-five', title: 'Find the Big Five', subtitle: 'Iconic wildlife across savannah landscapes', iconKey: 'wildlife', primaryColorHex: '#B56B36', secondaryColorHex: '#5E351F', isActive: true, sortOrder: 1),
-  SafariMood(id: -3, key: 'birding', title: 'Birding escapes', subtitle: 'Rare species, wetlands and forest trails', iconKey: 'bird', primaryColorHex: '#3C8F9B', secondaryColorHex: '#174854', isActive: true, sortOrder: 2),
-  SafariMood(id: -4, key: 'culture', title: 'Cultural journeys', subtitle: 'Community stories, heritage and local life', iconKey: 'culture', primaryColorHex: '#B8573C', secondaryColorHex: '#6B2F2B', isActive: true, sortOrder: 3),
-  SafariMood(id: -5, key: 'weekend', title: 'Weekend adventures', subtitle: 'Short, exciting escapes close to home', iconKey: 'route', primaryColorHex: '#567F3A', secondaryColorHex: '#2E4A25', isActive: true, sortOrder: 4),
-  SafariMood(id: -6, key: 'luxury', title: 'Luxury in the wild', subtitle: 'Private journeys and exceptional stays', iconKey: 'luxury', primaryColorHex: '#9A7652', secondaryColorHex: '#4E3827', isActive: true, sortOrder: 5),
+  SafariMood(
+    id: -1,
+    key: 'primates',
+    title: 'Meet the primates',
+    subtitle: 'Gorillas, chimpanzees and forest encounters',
+    iconKey: 'forest',
+    primaryColorHex: '#2A6A4F',
+    secondaryColorHex: '#123B32',
+    isActive: true,
+    sortOrder: 0,
+  ),
+  SafariMood(
+    id: -2,
+    key: 'big-five',
+    title: 'Find the Big Five',
+    subtitle: 'Iconic wildlife across savannah landscapes',
+    iconKey: 'wildlife',
+    primaryColorHex: '#B56B36',
+    secondaryColorHex: '#5E351F',
+    isActive: true,
+    sortOrder: 1,
+  ),
+  SafariMood(
+    id: -3,
+    key: 'birding',
+    title: 'Birding escapes',
+    subtitle: 'Rare species, wetlands and forest trails',
+    iconKey: 'bird',
+    primaryColorHex: '#3C8F9B',
+    secondaryColorHex: '#174854',
+    isActive: true,
+    sortOrder: 2,
+  ),
+  SafariMood(
+    id: -4,
+    key: 'culture',
+    title: 'Cultural journeys',
+    subtitle: 'Community stories, heritage and local life',
+    iconKey: 'culture',
+    primaryColorHex: '#B8573C',
+    secondaryColorHex: '#6B2F2B',
+    isActive: true,
+    sortOrder: 3,
+  ),
+  SafariMood(
+    id: -5,
+    key: 'weekend',
+    title: 'Weekend adventures',
+    subtitle: 'Short, exciting escapes close to home',
+    iconKey: 'route',
+    primaryColorHex: '#567F3A',
+    secondaryColorHex: '#2E4A25',
+    isActive: true,
+    sortOrder: 4,
+  ),
+  SafariMood(
+    id: -6,
+    key: 'luxury',
+    title: 'Luxury in the wild',
+    subtitle: 'Private journeys and exceptional stays',
+    iconKey: 'luxury',
+    primaryColorHex: '#9A7652',
+    secondaryColorHex: '#4E3827',
+    isActive: true,
+    sortOrder: 5,
+  ),
 ];
 
 SafariMood? safariMoodByKey(Iterable<SafariMood> moods, String? key) {

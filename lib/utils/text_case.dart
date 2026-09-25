@@ -1,8 +1,7 @@
 extension TitleCaseText on String {
   String toTitleCase() {
-    final matches = RegExp(
-      r"[A-Za-z]+(?:['’][A-Za-z]+)?",
-    ).allMatches(this).toList();
+    final matches =
+        RegExp(r"[A-Za-z]+(?:['’][A-Za-z]+)?").allMatches(this).toList();
     if (matches.isEmpty) return this;
 
     const minorWords = <String>{

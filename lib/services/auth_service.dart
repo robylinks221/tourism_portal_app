@@ -15,6 +15,14 @@ class AuthService {
   static final AuthService instance = AuthService._();
 
   static const String _tokenKey = 'tourism_portal_auth_token';
+
+  // Remembered login details are stored in FlutterSecureStorage,
+  // separate from the authenticated session token.
+  static const String _rememberLoginKey = 'tourism_portal_remember_login';
+  static const String _rememberedEmailKey = 'tourism_portal_remembered_email';
+  static const String _rememberedPasswordKey =
+      'tourism_portal_remembered_password';
+
   static const Duration _requestTimeout = Duration(seconds: 20);
   static const Duration _uploadTimeout = Duration(seconds: 90);
 
@@ -28,16 +36,45 @@ class AuthService {
 
   Future<String> resolveBaseUrl() => ApiEndpointResolver.instance.resolve();
 
+  Future<RememberedLogin> loadRememberedLogin() async {
+    final rememberValue = await _storage.read(key: _rememberLoginKey);
+    final remember = rememberValue == 'true';
+
+    if (!remember) {
+      return const RememberedLogin(enabled: false, email: '', password: '');
+    }
+
+    final email = await _storage.read(key: _rememberedEmailKey) ?? '';
+    final password = await _storage.read(key: _rememberedPasswordKey) ?? '';
+
+    return RememberedLogin(enabled: true, email: email, password: password);
+  }
+
+  Future<void> saveRememberedLogin({
+    required String email,
+    required String password,
+  }) async {
+    await _storage.write(key: _rememberLoginKey, value: 'true');
+    await _storage.write(
+      key: _rememberedEmailKey,
+      value: email.trim().toLowerCase(),
+    );
+    await _storage.write(key: _rememberedPasswordKey, value: password);
+  }
+
+  Future<void> clearRememberedLogin() async {
+    await _storage.delete(key: _rememberLoginKey);
+    await _storage.delete(key: _rememberedEmailKey);
+    await _storage.delete(key: _rememberedPasswordKey);
+  }
+
   Future<AuthUser> login({
     required String email,
     required String password,
   }) async {
     final response = await _post(
       '/login',
-      body: {
-        'email': email.trim().toLowerCase(),
-        'password': password,
-      },
+      body: {'email': email.trim().toLowerCase(), 'password': password},
     );
 
     return _saveAuthenticatedSession(response);
@@ -49,7 +86,9 @@ class AuthService {
     final profile = response['profile'];
 
     if (profile is! Map) {
-      throw const ApiException('No completed profile was found for this account.');
+      throw const ApiException(
+        'No completed profile was found for this account.',
+      );
     }
 
     return Map<String, dynamic>.from(profile);
@@ -199,15 +238,13 @@ class AuthService {
 
     try {
       requestBaseUrl = await resolveBaseUrl();
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$requestBaseUrl$path'),
-      )
-        ..headers.addAll({
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        })
-        ..fields.addAll(fields);
+      final request =
+          http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
+            ..headers.addAll({
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            })
+            ..fields.addAll(fields);
 
       for (final entry in listFields.entries) {
         for (var index = 0; index < entry.value.length; index++) {
@@ -240,16 +277,17 @@ class AuthService {
       }
 
       currentUser = AuthUser.fromJson(Map<String, dynamic>.from(userJson));
-      _profilePhotoUrlFuture = profileJson is Map
-          ? Future<String>.value(
-              storageUrl(
-                _profilePhotoPath(
-                  Map<String, dynamic>.from(profileJson),
-                  currentUser!.role,
+      _profilePhotoUrlFuture =
+          profileJson is Map
+              ? Future<String>.value(
+                storageUrl(
+                  _profilePhotoPath(
+                    Map<String, dynamic>.from(profileJson),
+                    currentUser!.role,
+                  ),
                 ),
-              ),
-            )
-          : null;
+              )
+              : null;
       return currentUser!;
     } on ApiEndpointUnavailable catch (error) {
       throw ApiException(_connectionError(error.candidates));
@@ -279,7 +317,9 @@ class AuthService {
   Future<String> _requiredToken() async {
     final token = await _storage.read(key: _tokenKey);
     if (token == null || token.isEmpty) {
-      throw const ApiException('Your session has expired. Please sign in again.');
+      throw const ApiException(
+        'Your session has expired. Please sign in again.',
+      );
     }
     return token;
   }
@@ -301,7 +341,9 @@ class AuthService {
     try {
       user.homeRoute;
     } on StateError {
-      throw const ApiException('This account role is not supported by the app.');
+      throw const ApiException(
+        'This account role is not supported by the app.',
+      );
     }
 
     await _storage.write(key: _tokenKey, value: token);
@@ -310,10 +352,7 @@ class AuthService {
     return user;
   }
 
-  Future<Map<String, dynamic>> _get(
-    String path, {
-    String? token,
-  }) async {
+  Future<Map<String, dynamic>> _get(String path, {String? token}) async {
     String? requestBaseUrl;
     try {
       requestBaseUrl = await resolveBaseUrl();
@@ -328,10 +367,14 @@ class AuthService {
       throw ApiException(_connectionError(error.candidates));
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API connection was interrupted. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API connection was interrupted. Try again.',
+      );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API did not respond. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API did not respond. Try again.',
+      );
     } on FormatException {
       throw const ApiException('The API returned an unreadable response.');
     } on http.ClientException {
@@ -361,10 +404,14 @@ class AuthService {
       throw ApiException(_connectionError(error.candidates));
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API connection was interrupted. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API connection was interrupted. Try again.',
+      );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API did not respond. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API did not respond. Try again.',
+      );
     } on FormatException {
       throw const ApiException('The API returned an unreadable response.');
     } on http.ClientException {
@@ -392,10 +439,14 @@ class AuthService {
       throw ApiException(_connectionError(error.candidates));
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API connection was interrupted. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API connection was interrupted. Try again.',
+      );
     } on TimeoutException {
       ApiEndpointResolver.instance.invalidate(requestBaseUrl);
-      throw const ApiException('The Tourism Portal API did not respond. Try again.');
+      throw const ApiException(
+        'The Tourism Portal API did not respond. Try again.',
+      );
     } on FormatException {
       throw const ApiException('The API returned an unreadable response.');
     } on http.ClientException {
@@ -413,9 +464,10 @@ class AuthService {
       return value;
     }
     final baseUrl = ApiEndpointResolver.instance.preferredBaseUrl;
-    final apiRoot = baseUrl.endsWith('/api')
-        ? baseUrl.substring(0, baseUrl.length - 4)
-        : baseUrl;
+    final apiRoot =
+        baseUrl.endsWith('/api')
+            ? baseUrl.substring(0, baseUrl.length - 4)
+            : baseUrl;
     return '$apiRoot/storage/$value';
   }
 
@@ -434,12 +486,12 @@ class AuthService {
   }
 
   Map<String, dynamic> _decodeResponse(http.Response response) {
-    final dynamic decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body);
-    final data = decoded is Map
-        ? Map<String, dynamic>.from(decoded)
-        : <String, dynamic>{};
+    final dynamic decoded =
+        response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+    final data =
+        decoded is Map
+            ? Map<String, dynamic>.from(decoded)
+            : <String, dynamic>{};
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
@@ -478,4 +530,16 @@ class AuthService {
     _profilePhotoUrlFuture = null;
     await _storage.delete(key: _tokenKey);
   }
+}
+
+class RememberedLogin {
+  const RememberedLogin({
+    required this.enabled,
+    required this.email,
+    required this.password,
+  });
+
+  final bool enabled;
+  final String email;
+  final String password;
 }

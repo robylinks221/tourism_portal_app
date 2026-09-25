@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/text_case.dart';
 
 class PremiumSkeleton extends StatefulWidget {
-  const PremiumSkeleton({
-    super.key,
-    this.height = 120,
-    this.borderRadius = 24,
-  });
+  const PremiumSkeleton({super.key, this.height = 120, this.borderRadius = 24});
 
   final double height;
   final double borderRadius;
@@ -34,23 +30,24 @@ class _PremiumSkeletonState extends State<PremiumSkeleton>
     final colors = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) => Container(
-        height: widget.height,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              colors.surfaceContainerHighest.withOpacity(.58),
-              colors.surfaceContainerHighest.withOpacity(
-                .82 + (_controller.value * .18),
+      builder:
+          (context, child) => Container(
+            height: widget.height,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colors.surfaceContainerHighest.withOpacity(.58),
+                  colors.surfaceContainerHighest.withOpacity(
+                    .82 + (_controller.value * .18),
+                  ),
+                  colors.surfaceContainerHighest.withOpacity(.58),
+                ],
+                begin: Alignment(-1 + _controller.value, -1),
+                end: Alignment(1 + _controller.value, 1),
               ),
-              colors.surfaceContainerHighest.withOpacity(.58),
-            ],
-            begin: Alignment(-1 + _controller.value, -1),
-            end: Alignment(1 + _controller.value, 1),
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+            ),
           ),
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-        ),
-      ),
     );
   }
 }
@@ -72,10 +69,11 @@ class DiscoverySkeleton extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 3,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (_, __) => const SizedBox(
-              width: 194,
-              child: PremiumSkeleton(height: 224),
-            ),
+            itemBuilder:
+                (_, __) => const SizedBox(
+                  width: 194,
+                  child: PremiumSkeleton(height: 224),
+                ),
           ),
         ),
       ],

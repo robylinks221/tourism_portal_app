@@ -38,10 +38,14 @@ class SafariBuilderService {
             }),
           )
           .timeout(const Duration(seconds: 20));
-      final decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
-      final data = decoded is Map
-          ? Map<String, dynamic>.from(decoded)
-          : <String, dynamic>{};
+      final decoded =
+          response.body.isEmpty
+              ? <String, dynamic>{}
+              : jsonDecode(response.body);
+      final data =
+          decoded is Map
+              ? Map<String, dynamic>.from(decoded)
+              : <String, dynamic>{};
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ApiException(
           _message(data) ?? 'Safari recommendations could not be created.',
@@ -55,7 +59,9 @@ class SafariBuilderService {
           .map((item) => OperatorTour.fromJson(Map<String, dynamic>.from(item)))
           .toList();
     } on ApiEndpointUnavailable {
-      throw const ApiException('Cannot reach the safari recommendation service.');
+      throw const ApiException(
+        'Cannot reach the safari recommendation service.',
+      );
     } on SocketException {
       ApiEndpointResolver.instance.invalidate(baseUrl);
       throw const ApiException('The safari recommendation connection failed.');
