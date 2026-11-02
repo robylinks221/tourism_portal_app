@@ -36,12 +36,9 @@ class AuthService {
 
   Future<String> resolveBaseUrl() => ApiEndpointResolver.instance.resolve();
 
-  // Migration safety switch: non-auth services remain offline until reviewed.
-  Future<String> resolveFeatureBaseUrl() async {
-    throw const ApiException(
-      'This feature is temporarily unavailable while we connect the production API.',
-    );
-  }
+  // All feature services use the same production API as authentication.
+  // The endpoint resolver currently returns the production HTTPS base URL.
+  Future<String> resolveFeatureBaseUrl() => resolveBaseUrl();
 
   Future<RememberedLogin> loadRememberedLogin() async {
     final rememberValue = await _storage.read(key: _rememberLoginKey);
