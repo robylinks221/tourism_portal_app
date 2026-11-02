@@ -463,7 +463,7 @@ class CommunityService {
 
     try {
       // Resolve the currently reachable Laravel API.
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri = Uri.parse('$requestBaseUrl$path');
 

@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -469,13 +470,15 @@ class _GuideDashboard extends StatelessWidget {
                   ),
                   foregroundColor: colors.primary,
                 ),
+                  const SizedBox(width: 7),
+                  const PlatformBrandLogo(size: 42),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Good morning, ${AuthService.instance.currentUser?.name ?? 'Guide'}!',
+                        'Good morning, ${(AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Guide') ?? 'Guide')}!',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w300,
                         ),

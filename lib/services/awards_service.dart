@@ -125,7 +125,7 @@ class AwardsService {
   }) async {
     String? base;
     try {
-      base = await AuthService.instance.resolveBaseUrl();
+      base = await AuthService.instance.resolveFeatureBaseUrl();
       final headers = <String, String>{
         'Accept': 'application/json',
         'Content-Type': 'application/json',

@@ -22,7 +22,7 @@ class SafariBuilderService {
   }) async {
     String? baseUrl;
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .post(
             Uri.parse('$baseUrl/safari-builder/recommendations'),

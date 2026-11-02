@@ -30,7 +30,7 @@ class CarHireBookingService {
     String? baseUrl;
 
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final token = await AuthService.instance.requireToken();
 
       final response = await http
@@ -119,7 +119,7 @@ class CarHireBookingService {
     String? baseUrl;
 
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final token = await AuthService.instance.requireToken();
 
       final response = await http
@@ -287,7 +287,7 @@ class CarHireBookingService {
     String? baseUrl;
 
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final token = await AuthService.instance.requireToken();
 
       final uri = Uri.parse('$baseUrl$path');

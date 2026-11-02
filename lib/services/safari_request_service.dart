@@ -259,7 +259,7 @@ class SafariRequestService {
     Map<String, dynamic>? body,
   }) async {
     try {
-      final baseUrl = await AuthService.instance.resolveBaseUrl();
+      final baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final token = await AuthService.instance.requireToken();
 

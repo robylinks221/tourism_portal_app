@@ -1,17 +1,21 @@
-# tourism_portal_app
+# Tourism Portal — Premium Admin Settings
 
-A new Flutter project.
+This package includes two complete replacement Flutter files:
 
-## Getting Started
+- `lib/pages/admin_home_page.dart` — enables the Settings tile.
+- `lib/pages/admin_settings_page.dart` — new premium admin settings hub.
 
-This project is a starting point for a Flutter application.
+## Installation
 
-A few resources to get you started if this is your first Flutter project:
+From the Mac terminal, assuming this ZIP is in Downloads:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+cd "$HOME/Development/tourism_portal_app"
+cp lib/pages/admin_home_page.dart lib/pages/admin_home_page.dart.backup-before-settings
+unzip -o "$HOME/Downloads/tourism_admin_settings.zip" -d .
+flutter analyze lib/pages/admin_home_page.dart lib/pages/admin_settings_page.dart
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# tourism_portal_app
+The new hub links to existing, working admin pages and provides a confirmation dialog for signing out. It does not add fictional persistent settings or alter the Laravel backend, Awards voting, or advertisements.
+
+Future editable global settings will require their corresponding Laravel API endpoints and authorization checks.

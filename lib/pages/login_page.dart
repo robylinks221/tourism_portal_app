@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_exception.dart';
@@ -198,6 +199,8 @@ class _LoginPageState extends State<LoginPage> {
 
           const SizedBox(height: 26),
 
+          const PlatformBrandLogo(size: 86),
+          const SizedBox(height: 14),
           const Text(
             'Explore East Africa',
             textAlign: TextAlign.center,

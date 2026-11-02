@@ -1,64 +1,58 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../services/session_navigation.dart';
 import '../widgets/current_user_avatar.dart';
 import 'admin_catalog_page.dart';
+import 'admin_advertisements_page.dart';
 import 'admin_awards_hub_page.dart';
 import 'admin_countries_page.dart';
 import 'admin_onboarding_slides_page.dart';
 import 'admin_provider_verification_page.dart';
+import 'admin_settings_page.dart';
+
+const _forest = Color(0xFF165B5D);
+const _deep = Color(0xFF103F42);
+const _orange = Color(0xFFF46627);
+const _canvas = Color(0xFFF4EEE1);
+const _muted = Color(0xFF718082);
 
 class AdminHomePage extends StatelessWidget {
   const AdminHomePage({super.key});
 
-  void _showComingSoon(BuildContext context, String feature) {
+  void _comingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature will be added soon.'),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text('$feature is not available yet.'), behavior: SnackBarBehavior.floating),
     );
+  }
+
+  void _open(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
-    const darkGreen = Color(0xFF165B5D);
-    const primaryGreen = Color(0xFF165B5D);
-    const secondary = Color(0xFFF46627);
-    const backgroundColor = Color(0xFFF4EEE1);
-
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 760 ? 3 : 2;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: _canvas,
       appBar: AppBar(
-        backgroundColor: darkGreen,
+        backgroundColor: _forest,
         foregroundColor: Colors.white,
+        elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Row(
-          children: [
-            Icon(Icons.landscape_rounded),
-            SizedBox(width: 10),
-            Text(
-              'Tourism Portal',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
+        titleSpacing: 20,
+        title: const Row(children: [
+          PlatformBrandLogo(size: 34),
+          SizedBox(width: 10),
+          Expanded(child: Text('Tourism Portal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+        ]),
         actions: [
           IconButton(
-            onPressed: () => _showComingSoon(context, 'Notifications'),
-            icon: const Badge(
-              smallSize: 8,
-              child: Icon(Icons.notifications_outlined),
-            ),
-          ),
-          IconButton(
-            onPressed: () => _showComingSoon(context, 'Admin profile'),
-            icon: const CurrentUserAvatar(
-              radius: 17,
-              backgroundColor: Colors.white,
-              foregroundColor: primaryGreen,
-            ),
+            tooltip: 'Notifications',
+            onPressed: () => _comingSoon(context, 'Notifications'),
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
           IconButton(
             tooltip: 'Sign out',
@@ -69,438 +63,200 @@ class AdminHomePage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0B3D3F), primaryGreen],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: darkGreen.withValues(alpha: .18),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    const CurrentUserAvatar(
-                      radius: 31,
-                      backgroundColor: Colors.white,
-                      foregroundColor: primaryGreen,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome back',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .74),
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AuthService.instance.currentUser?.name ??
-                                'Administrator',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          const Text(
-                            'Manage the Tourism Portal.',
-                            style: TextStyle(color: Colors.white, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              const _SectionTitle('System Overview'),
-              const SizedBox(height: 14),
-              const Row(
-                children: [
-                  Expanded(
-                    child: _AdminStatCard(
-                      icon: Icons.people_outline_rounded,
-                      value: '0',
-                      label: 'Users',
-                      color: primaryGreen,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _AdminStatCard(
-                      icon: Icons.calendar_month_outlined,
-                      value: '0',
-                      label: 'Bookings',
-                      color: Color(0xFF0277BD),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Row(
-                children: [
-                  Expanded(
-                    child: _AdminStatCard(
-                      icon: Icons.tour_outlined,
-                      value: '0',
-                      label: 'Tour Packages',
-                      color: Color(0xFF7B1FA2),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _AdminStatCard(
-                      icon: Icons.pending_actions_outlined,
-                      value: '0',
-                      label: 'Pending',
-                      color: secondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              const _SectionTitle('Quick Actions'),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.18,
-                children: [
-                  _AdminActionCard(
-                    icon: Icons.public_rounded,
-                    title: 'Countries',
-                    subtitle: 'Images & country hubs',
-                    color: secondary,
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminCountriesPage(),
-                          ),
-                        ),
-                  ),
-                  _AdminActionCard(
-                    icon: Icons.workspace_premium_outlined,
-                    title: 'Guide Awards',
-                    subtitle: 'Manage awards & judging',
-                    color: secondary,
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminAwardsHubPage(),
-                          ),
-                        ),
-                  ),
-                  _AdminActionCard(
-                    icon: Icons.manage_accounts_outlined,
-                    title: 'Manage Users',
-                    subtitle: 'View all accounts',
-                    color: primaryGreen,
-                    onTap: () => _showComingSoon(context, 'Manage Users'),
-                  ),
-                  _AdminActionCard(
-                    icon: Icons.verified_user_outlined,
-                    title: 'Approvals',
-                    subtitle: 'Review accounts',
-                    color: secondary,
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) => const AdminProviderVerificationPage(),
-                          ),
-                        ),
-                  ),
-                  _AdminActionCard(
-                    icon: Icons.landscape_outlined,
-                    title: 'Tourism Catalog',
-                    subtitle: 'Activities & destinations',
-                    color: const Color(0xFF7B1FA2),
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminCatalogPage(),
-                          ),
-                        ),
-                  ),
-                  _AdminActionCard(
-                    icon: Icons.view_carousel_outlined,
-                    title: 'First Page Slides',
-                    subtitle: 'Manage onboarding',
-                    color: const Color(0xFF0277BD),
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AdminOnboardingSlidesPage(),
-                          ),
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              const _SectionTitle('Provider verification'),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 28,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: darkGreen.withValues(alpha: .08)),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.fact_check_outlined,
-                      size: 46,
-                      color: Color(0xFF9EAAA1),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Review guide and operator profiles',
-                      style: TextStyle(
-                        color: darkGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Verification badges only appear after a recorded administrative review.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF778078),
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton.icon(
-                      onPressed:
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (_) => const AdminProviderVerificationPage(),
-                            ),
-                          ),
-                      icon: const Icon(Icons.verified_user_outlined),
-                      label: const Text('Open verification queue'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 36),
+          children: [
+            _WelcomeHeader(name: (AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Administrator') ?? 'Administrator')),
+            const SizedBox(height: 25),
+            const _SectionHeading(title: 'Priority workspace', subtitle: 'The tasks that need your attention'),
+            const SizedBox(height: 12),
+            _FeatureBanner(
+              icon: Icons.verified_user_outlined,
+              title: 'Provider verification',
+              description: 'Review guide and tour operator profiles before awarding verification status.',
+              button: 'Review profiles',
+              onTap: () => _open(context, const AdminProviderVerificationPage()),
+            ),
+            const SizedBox(height: 26),
+            const _SectionHeading(title: 'Content & destinations', subtitle: 'Manage what travellers discover'),
+            const SizedBox(height: 12),
+            _ActionGrid(columns: columns, actions: [
+              _Action(Icons.public_rounded, 'Countries', 'Country hubs & images', () => _open(context, const AdminCountriesPage())),
+              _Action(Icons.landscape_outlined, 'Tourism Catalog', 'Activities & destinations', () => _open(context, const AdminCatalogPage())),
+              _Action(Icons.view_carousel_outlined, 'First Page Slides', 'Welcome screens', () => _open(context, const AdminOnboardingSlidesPage())),
+            ]),
+            const SizedBox(height: 26),
+            const _SectionHeading(title: 'Campaigns & recognition', subtitle: 'Promotions and tourism awards'),
+            const SizedBox(height: 12),
+            _ActionGrid(columns: columns, actions: [
+              _Action(Icons.campaign_outlined, 'Advertisements', 'Posters, schedules & reach', () => _open(context, const AdminAdvertisementsPage()), accent: true),
+              _Action(Icons.workspace_premium_outlined, 'Guide Awards', 'Awards & judging', () => _open(context, const AdminAwardsHubPage())),
+            ]),
+            const SizedBox(height: 26),
+            const _SectionHeading(title: 'Platform administration', subtitle: 'Account and platform controls'),
+            const SizedBox(height: 12),
+            _ActionGrid(columns: columns, actions: [
+              _Action(Icons.manage_accounts_outlined, 'Manage Users', 'Coming soon', () => _comingSoon(context, 'Manage Users'), enabled: false),
+              _Action(Icons.settings_outlined, 'Settings', 'Platform controls', () => _open(context, const AdminSettingsPage())),
+            ]),
+            const SizedBox(height: 24),
+            const Text('TOURISM PORTAL  •  ADMIN WORKSPACE', textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: _muted, fontWeight: FontWeight.w700)),
+          ],
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        height: 72,
+        backgroundColor: Colors.white,
         selectedIndex: 0,
-        indicatorColor: primaryGreen.withValues(alpha: .12),
+        indicatorColor: _forest.withValues(alpha: .11),
         onDestinationSelected: (index) {
-          if (index != 0) {
-            const features = ['Dashboard', 'Users', 'Approvals', 'Settings'];
-            _showComingSoon(context, features[index]);
+          switch (index) {
+            case 0: break;
+            case 1: _open(context, const AdminCatalogPage()); break;
+            case 2: _open(context, const AdminProviderVerificationPage()); break;
+            case 3: _open(context, const AdminAdvertisementsPage()); break;
           }
         },
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline_rounded),
-            selectedIcon: Icon(Icons.people_rounded),
-            label: 'Users',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.verified_user_outlined),
-            selectedIcon: Icon(Icons.verified_user_rounded),
-            label: 'Approvals',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
+          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Overview'),
+          NavigationDestination(icon: Icon(Icons.landscape_outlined), label: 'Catalog'),
+          NavigationDestination(icon: Icon(Icons.verified_user_outlined), label: 'Approvals'),
+          NavigationDestination(icon: Icon(Icons.campaign_outlined), label: 'Adverts'),
         ],
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-  final String text;
-
+class _WelcomeHeader extends StatelessWidget {
+  const _WelcomeHeader({required this.name});
+  final String name;
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF165B5D),
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(colors: [_deep, _forest], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [BoxShadow(color: _deep.withValues(alpha: .13), blurRadius: 18, offset: const Offset(0, 8))],
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const CurrentUserAvatar(radius: 23, backgroundColor: Colors.white, foregroundColor: _forest),
+        const SizedBox(width: 13),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('ADMIN WORKSPACE', style: TextStyle(color: Colors.white.withValues(alpha: .65), fontSize: 10, letterSpacing: 1.7, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 5),
+          Text('Welcome, $name', maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+        ])),
+      ]),
+      const SizedBox(height: 17),
+      Text('Your control centre for destinations, providers, promotions and tourism experiences.',
+        style: TextStyle(color: Colors.white.withValues(alpha: .81), height: 1.5, fontSize: 13)),
+      const SizedBox(height: 16),
+      Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .11), borderRadius: BorderRadius.circular(30)),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.shield_outlined, size: 14, color: Colors.white), SizedBox(width: 7),
+          Text('Administrator access', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        ])),
+    ]),
+  );
 }
 
-class _AdminStatCard extends StatelessWidget {
-  const _AdminStatCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 23),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Color(0xFF165B5D),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF778078),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AdminActionCard extends StatelessWidget {
-  const _AdminActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
   final String title;
   final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
   @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFF165B5D).withValues(alpha: .07),
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: .10),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 25),
-              ),
-              const SizedBox(height: 9),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF165B5D),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF778078), fontSize: 12),
-              ),
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _deep, letterSpacing: -.4)),
+    const SizedBox(height: 3),
+    Text(subtitle, style: const TextStyle(fontSize: 12, color: _muted)),
+  ]);
+}
+
+class _FeatureBanner extends StatelessWidget {
+  const _FeatureBanner({required this.icon, required this.title, required this.description, required this.button, required this.onTap});
+  final IconData icon;
+  final String title, description, button;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white, borderRadius: BorderRadius.circular(20),
+    child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(20),
+      child: Container(padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: _forest.withValues(alpha: .09))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: _forest.withValues(alpha: .08), borderRadius: BorderRadius.circular(13)),
+              child: Icon(icon, color: _forest, size: 23)),
+            const SizedBox(width: 13),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(color: _deep, fontSize: 16, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
+              Text(description, style: const TextStyle(color: _muted, fontSize: 12, height: 1.5)),
+            ])),
+          ]),
+          const SizedBox(height: 15),
+          Row(children: [
+            Text(button, style: const TextStyle(color: _forest, fontSize: 13, fontWeight: FontWeight.w800)),
+            const SizedBox(width: 5), const Icon(Icons.arrow_forward_rounded, color: _forest, size: 17),
+          ]),
+        ]),
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _Action {
+  const _Action(this.icon, this.title, this.subtitle, this.onTap, {this.accent = false, this.enabled = true});
+  final IconData icon;
+  final String title, subtitle;
+  final VoidCallback onTap;
+  final bool accent, enabled;
+}
+
+class _ActionGrid extends StatelessWidget {
+  const _ActionGrid({required this.columns, required this.actions});
+  final int columns;
+  final List<_Action> actions;
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
+    final gap = 11.0;
+    final cardWidth = (constraints.maxWidth - (columns - 1) * gap) / columns;
+    return Wrap(spacing: gap, runSpacing: gap, children: [
+      for (final action in actions)
+        SizedBox(width: cardWidth, child: _ActionTile(action: action)),
+    ]);
+  });
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({required this.action});
+  final _Action action;
+  @override
+  Widget build(BuildContext context) => Material(
+    color: action.enabled ? Colors.white : const Color(0xFFF8F7F4),
+    borderRadius: BorderRadius.circular(18),
+    child: InkWell(onTap: action.onTap, borderRadius: BorderRadius.circular(18),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 145),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: _forest.withValues(alpha: .075))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 42, height: 42,
+            decoration: BoxDecoration(color: (action.accent ? _orange : _forest).withValues(alpha: .10), borderRadius: BorderRadius.circular(12)),
+            child: Icon(action.icon, color: action.accent ? _orange : _forest, size: 22)),
+          const SizedBox(height: 13),
+          Text(action.title, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _deep)),
+          const SizedBox(height: 4),
+          Text(action.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: _muted, height: 1.3)),
+        ]),
+      ),
+    ),
+  );
 }

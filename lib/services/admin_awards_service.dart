@@ -71,7 +71,7 @@ class AdminAwardsService {
     String? baseUrl;
     try {
       final token=await AuthService.instance.requireToken();
-      baseUrl=await AuthService.instance.resolveBaseUrl();
+      baseUrl=await AuthService.instance.resolveFeatureBaseUrl();
       final uri=Uri.parse('$baseUrl$path');
       final headers={'Accept':'application/json','Content-Type':'application/json','Authorization':'Bearer $token'};
       final response=method=='GET'

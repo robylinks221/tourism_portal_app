@@ -190,7 +190,7 @@ class CatalogService {
     String? requestBaseUrl;
     try {
       final token = admin ? await AuthService.instance.requireToken() : null;
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse(
@@ -241,7 +241,7 @@ class CatalogService {
   Future<CatalogItem> fetchDestination(String slug) async {
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse('$requestBaseUrl/destinations/$slug'),
@@ -277,7 +277,7 @@ class CatalogService {
   Future<CatalogItem> fetchActivity(String slug) async {
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse('$requestBaseUrl/activities/$slug'),
@@ -320,7 +320,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri = Uri.parse('$requestBaseUrl/activities/$slug/tours')
           .replace(
@@ -366,7 +366,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri = Uri.parse('$requestBaseUrl/activities/$slug/providers')
           .replace(
@@ -413,7 +413,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri = Uri.parse('$requestBaseUrl/destinations/$slug/tours').replace(
         queryParameters: {
@@ -460,7 +460,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri =
           Uri.parse('$requestBaseUrl/destinations/$slug/providers').replace(
@@ -510,7 +510,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final uri = Uri.parse('$requestBaseUrl/multi-country-tours').replace(
         queryParameters: {
@@ -555,7 +555,7 @@ class CatalogService {
     String? requestBaseUrl;
     try {
       final token = await AuthService.instance.requireToken();
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse(
@@ -605,7 +605,7 @@ class CatalogService {
     String? requestBaseUrl;
     try {
       final token = await AuthService.instance.requireToken();
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final path = accommodation == null
           ? '/admin/destinations/${destination.id}/accommodations'
           : '/admin/accommodations/${accommodation.id}';
@@ -660,7 +660,7 @@ class CatalogService {
     String? requestBaseUrl;
     try {
       final token = await AuthService.instance.requireToken();
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .delete(
             Uri.parse(
@@ -706,7 +706,7 @@ class CatalogService {
     final path = item == null ? '/admin/$plural' : '/admin/$plural/${item.id}';
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final request =
           http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
             ..headers.addAll({
@@ -767,7 +767,7 @@ class CatalogService {
     final path = mood == null ? '/admin/moods' : '/admin/moods/${mood.id}';
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final request =
           http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
             ..headers.addAll({
@@ -807,7 +807,7 @@ class CatalogService {
     final token = await AuthService.instance.requireToken();
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .post(
             Uri.parse('$requestBaseUrl/admin/moods/reorder'),
@@ -843,7 +843,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final response = await http
           .post(
@@ -891,7 +891,7 @@ class CatalogService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final response = await http
           .post(
@@ -935,7 +935,7 @@ class CatalogService {
     final token = await AuthService.instance.requireToken();
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .delete(
             Uri.parse('$requestBaseUrl/admin/moods/${mood.id}'),
@@ -966,7 +966,7 @@ class CatalogService {
     final plural = item.isActivity ? 'activities' : 'destinations';
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .delete(
             Uri.parse('$requestBaseUrl/admin/$plural/${item.id}'),

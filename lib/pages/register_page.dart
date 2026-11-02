@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_exception.dart';
@@ -229,7 +230,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   ],
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
+                const Center(child: PlatformBrandLogo(size: 78)),
+                const SizedBox(height: 16),
 
                 // ==================================================
                 // HEADING

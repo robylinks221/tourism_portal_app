@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -5,7 +6,7 @@ import '../services/account_management.dart';
 import '../services/discovery_store.dart';
 import '../services/session_navigation.dart';
 import '../utils/text_case.dart';
-import '../widgets/app_ui.dart';
+import '../widgets/sponsored_advertisements.dart';
 import '../widgets/catalog_home_sections.dart';
 import '../widgets/current_user_avatar.dart';
 import '../widgets/country_discovery_section.dart';
@@ -19,7 +20,6 @@ import 'community_page.dart';
 import 'discovery_page.dart';
 import 'my_safari_requests_page.dart';
 import 'safari_builder_page.dart';
-import 'tourist_bookings_page.dart';
 import 'tourist_bookings_hub_page.dart';
 
 class TouristHomePage extends StatefulWidget {
@@ -284,9 +284,9 @@ class _HomePage extends StatelessWidget {
 
     final isDark = theme.brightness == Brightness.dark;
 
-    final mutedText = colors.onSurface.withOpacity(0.62);
+    final mutedText = colors.onSurface.withValues(alpha: 0.62);
 
-    final borderColor = colors.outline.withOpacity(isDark ? 0.62 : 0.72);
+    final borderColor = colors.outline.withValues(alpha: isDark ? 0.62 : 0.72);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -301,11 +301,13 @@ class _HomePage extends StatelessWidget {
               children: [
                 CurrentUserAvatar(
                   radius: 24,
-                  backgroundColor: colors.primary.withOpacity(
+                  backgroundColor: colors.primary.withValues(alpha: 
                     isDark ? 0.18 : 0.13,
                   ),
                   foregroundColor: colors.primary,
                 ),
+                  const SizedBox(width: 7),
+                  const PlatformBrandLogo(size: 42),
 
                 const SizedBox(width: 12),
 
@@ -314,7 +316,7 @@ class _HomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hello, ${AuthService.instance.currentUser?.name ?? 'Traveller'}!',
+                        'Hello, ${(AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Traveller') ?? 'Traveller')}!',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -382,7 +384,7 @@ class _HomePage extends StatelessWidget {
                 border: Border.all(color: borderColor),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.16 : 0.04),
+                    color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.04),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -425,6 +427,9 @@ class _HomePage extends StatelessWidget {
 
             _AwardsAccessCard(onPressed: onAwardsPressed),
 
+            const SizedBox(height: 24),
+            const SponsoredAdvertisements(placement: 'homepage_carousel'),
+
             const SizedBox(height: 30),
 
             CountryDiscoverySection(isGuest: isGuest),
@@ -437,6 +442,9 @@ class _HomePage extends StatelessWidget {
             const SizedBox(height: 30),
 
             RecommendedForYouSection(isGuest: isGuest),
+
+            const SizedBox(height: 24),
+            const SponsoredAdvertisements(placement: 'homepage_inline'),
 
             const SizedBox(height: 30),
 
@@ -557,9 +565,9 @@ class _ProfilePage extends StatelessWidget {
 
     final isDark = theme.brightness == Brightness.dark;
 
-    final mutedText = colors.onSurface.withOpacity(0.62);
+    final mutedText = colors.onSurface.withValues(alpha: 0.62);
 
-    final borderColor = colors.outline.withOpacity(isDark ? 0.62 : 0.72);
+    final borderColor = colors.outline.withValues(alpha: isDark ? 0.62 : 0.72);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -571,7 +579,7 @@ class _ProfilePage extends StatelessWidget {
                 width: 92,
                 height: 92,
                 decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(isDark ? 0.18 : 0.13),
+                  color: colors.primary.withValues(alpha: isDark ? 0.18 : 0.13),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -583,7 +591,7 @@ class _ProfilePage extends StatelessWidget {
             else
               CurrentUserAvatar(
                 radius: 46,
-                backgroundColor: colors.primary.withOpacity(
+                backgroundColor: colors.primary.withValues(alpha: 
                   isDark ? 0.18 : 0.13,
                 ),
                 foregroundColor: colors.primary,
@@ -748,7 +756,7 @@ class _ProfileTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: colors.primary.withOpacity(0.12),
+          color: colors.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Icon(icon, color: colors.primary, size: 21),
@@ -761,7 +769,7 @@ class _ProfileTile extends StatelessWidget {
       ),
       trailing: Icon(
         Icons.arrow_forward_ios_rounded,
-        color: colors.onSurface.withOpacity(0.42),
+        color: colors.onSurface.withValues(alpha: 0.42),
         size: 16,
       ),
     );
@@ -780,7 +788,7 @@ Future<void> _showGuestAccountSheet(
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withOpacity(.50),
+    barrierColor: Colors.black.withValues(alpha: .50),
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
 
@@ -804,7 +812,7 @@ Future<void> _showGuestAccountSheet(
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: colors.outline.withOpacity(.30),
+                  color: colors.outline.withValues(alpha: .30),
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
@@ -815,7 +823,7 @@ Future<void> _showGuestAccountSheet(
                 width: 58,
                 height: 58,
                 decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(.10),
+                  color: colors.primary.withValues(alpha: .10),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -841,7 +849,7 @@ Future<void> _showGuestAccountSheet(
                 message,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurface.withOpacity(.62),
+                  color: colors.onSurface.withValues(alpha: .62),
                   height: 1.45,
                 ),
               ),

@@ -19,7 +19,7 @@ class CountryService {
 
     try {
       final token = admin ? await AuthService.instance.requireToken() : null;
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final response = await http
           .get(
@@ -77,7 +77,7 @@ class CountryService {
 
     try {
       final token = await AuthService.instance.requireToken();
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
       final request = http.MultipartRequest(
         'POST',

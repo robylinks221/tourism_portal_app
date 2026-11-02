@@ -1,0 +1,180 @@
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/admin_platform_settings_service.dart';
+
+const _green = Color(0xFF165B5D);
+const _orange = Color(0xFFF46627);
+const _cream = Color(0xFFF4EEE1);
+
+class AdminPlatformSettingsPage extends StatefulWidget {
+  const AdminPlatformSettingsPage({super.key});
+  @override
+  State<AdminPlatformSettingsPage> createState() => _AdminPlatformSettingsPageState();
+}
+
+class _AdminPlatformSettingsPageState extends State<AdminPlatformSettingsPage> {
+  final api = AdminPlatformSettingsService();
+  final sections = <String, Map<String, dynamic>>{};
+  bool loading = true;
+  String? error;
+  @override
+  void initState() { super.initState(); refresh(); }
+  Future<void> refresh() async {
+    setState(() { loading = true; error = null; });
+    try {
+      final data = await api.load();
+      if (!mounted) return;
+      setState(() { sections.clear(); for (final entry in (data['settings'] as Map).entries) {
+        sections[entry.key.toString()] = Map<String, dynamic>.from(entry.value as Map);
+      } loading = false; });
+    } catch (e) { if (mounted) setState(() { loading = false; error = '$e'; }); }
+  }
+  void openSection(String section, String title) {
+    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => _SettingsEditor(
+      title: title, section: section, initial: sections[section] ?? {}, api: api,
+    ))).then((_) => refresh());
+  }
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: _cream,
+    appBar: AppBar(title: const Text('Platform Settings'), backgroundColor: _green, foregroundColor: Colors.white),
+    body: loading ? const Center(child: CircularProgressIndicator()) : error != null
+      ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(error!, textAlign: TextAlign.center), const SizedBox(height: 12), FilledButton(onPressed: refresh, child: const Text('Retry')),
+        ])))
+      : ListView(padding: const EdgeInsets.all(18), children: [
+          const Text('Manage your platform', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: _green)),
+          const SizedBox(height: 6), const Text('Secure, database-backed administrator preferences.'),
+          const SizedBox(height: 24),
+          _tile(Icons.tune_rounded, 'General Settings', 'Name, logo, contacts and support', () => openSection('general', 'General Settings')),
+          _tile(Icons.palette_outlined, 'Appearance', 'Brand colours and display mode', () => openSection('appearance', 'Appearance')),
+          _tile(Icons.people_alt_outlined, 'User Management', 'View accounts and create administrators', () => Navigator.push(context, MaterialPageRoute<void>(builder: (_) => _UsersPage(api: api)))),
+          _tile(Icons.verified_user_outlined, 'Provider Management', 'Verification policy preferences', () => openSection('provider', 'Provider Management')),
+          const SizedBox(height: 15),
+          const Text('Note: Branding and provider policy values are stored on the server. Applying them across public screens and verification decisions requires separate integration.', style: TextStyle(color: Colors.black54, height: 1.5)),
+        ]),
+  );
+  Widget _tile(IconData icon, String title, String subtitle, VoidCallback tap) => Card(
+    margin: const EdgeInsets.only(bottom: 12), color: Colors.white,
+    child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      leading: CircleAvatar(backgroundColor: _green.withValues(alpha: .09), child: Icon(icon, color: _green)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(subtitle), trailing: const Icon(Icons.chevron_right_rounded), onTap: tap),
+  );
+}
+
+class _SettingsEditor extends StatefulWidget {
+  const _SettingsEditor({required this.title, required this.section, required this.initial, required this.api});
+  final String title, section;
+  final Map<String, dynamic> initial;
+  final AdminPlatformSettingsService api;
+  @override State<_SettingsEditor> createState() => _SettingsEditorState();
+}
+class _SettingsEditorState extends State<_SettingsEditor> {
+  final controllers = <String, TextEditingController>{};
+  late Map<String, dynamic> data;
+  bool busy = false;
+  @override void initState() { super.initState(); data = Map.of(widget.initial); }
+  @override void dispose() { for (final c in controllers.values) { c.dispose(); } super.dispose(); }
+  Widget field(String key, String label, {TextInputType? type}) {
+    final controller = controllers.putIfAbsent(key, () => TextEditingController(text: (data[key] ?? '').toString()));
+    return Padding(padding: const EdgeInsets.only(bottom: 14), child: TextField(controller: controller,
+      keyboardType: type, onChanged: (v) => data[key] = v,
+      decoration: InputDecoration(labelText: label, filled: true, fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))));
+  }
+  Widget toggle(String key, String label) => SwitchListTile.adaptive(
+    title: Text(label), value: data[key] == true, activeTrackColor: _green,
+    onChanged: (v) => setState(() => data[key] = v));
+  Future<void> save() async {
+    setState(() => busy = true);
+    try { await widget.api.save(widget.section, data);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+      Navigator.pop(context);
+    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e'))); }
+    finally { if (mounted) setState(() => busy = false); }
+  }
+  Future<void> logo() async {
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (image == null) return;
+    setState(() => busy = true);
+    try { final url = await widget.api.uploadLogo(image.path);
+      if (mounted) setState(() => data['logo_url'] = url);
+    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e'))); }
+    finally { if (mounted) setState(() => busy = false); }
+  }
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: _cream,
+    appBar: AppBar(title: Text(widget.title), backgroundColor: _green, foregroundColor: Colors.white),
+    body: ListView(padding: const EdgeInsets.all(18), children: [
+      if (widget.section == 'general') ...[
+        field('app_name','App name'), field('support_email','Support email', type: TextInputType.emailAddress),
+        field('phone','Contact phone'), field('whatsapp','WhatsApp number'), field('website','Website URL'), field('address','Business address'),
+        OutlinedButton.icon(onPressed: busy ? null : logo, icon: const Icon(Icons.image_outlined), label: const Text('Upload app logo')),
+        if ((data['logo_url'] ?? '').toString().isNotEmpty) Text('Logo: ${data['logo_url']}', maxLines: 2, overflow: TextOverflow.ellipsis),
+      ],
+      if (widget.section == 'appearance') ...[
+        const Text('Brand colours (HEX)', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        field('primary_color','Primary colour'), field('secondary_color','Accent colour'), field('background_color','Background colour'),
+        const Text('Display preference'),
+        DropdownButtonFormField<String>(value: (data['display_mode'] ?? 'system').toString(),
+          items: const [DropdownMenuItem(value: 'system', child: Text('Follow device')),
+            DropdownMenuItem(value: 'light', child: Text('Light')),
+            DropdownMenuItem(value: 'dark', child: Text('Dark'))],
+          onChanged: (v) { if (v != null) data['display_mode'] = v; }),
+        const SizedBox(height: 12),
+        const Text('Saved preferences do not automatically change existing app screens.', style: TextStyle(color: Colors.black54)),
+      ],
+      if (widget.section == 'provider') ...[
+        toggle('require_verification','Require administrator verification'),
+        toggle('require_document_review','Require document review'),
+        field('verification_notes','Internal verification policy notes'),
+        const Text('These are stored policy preferences. Existing verification rules remain unchanged until integrated.', style: TextStyle(color: Colors.black54)),
+      ],
+      const SizedBox(height: 20),
+      FilledButton(style: FilledButton.styleFrom(backgroundColor: _green, padding: const EdgeInsets.all(16)),
+        onPressed: busy ? null : save, child: Text(busy ? 'Saving…' : 'Save Changes')),
+    ]),
+  );
+}
+
+class _UsersPage extends StatefulWidget {
+  const _UsersPage({required this.api});
+  final AdminPlatformSettingsService api;
+  @override State<_UsersPage> createState() => _UsersPageState();
+}
+class _UsersPageState extends State<_UsersPage> {
+  late Future<List<dynamic>> future;
+  @override void initState() { super.initState(); reload(); }
+  void reload() => setState(() => future = widget.api.users());
+  Future<void> add() async {
+    final name = TextEditingController(), email = TextEditingController(), password = TextEditingController();
+    try {
+      final submitted = await showDialog<bool>(context: context, builder: (dialogContext) => AlertDialog(
+        title: const Text('Create administrator'), content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'Full name')),
+          TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+          TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'Strong password (12+ characters)')),
+        ])), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Create'))]));
+      if (submitted != true) return;
+      await widget.api.addAdmin(name.text.trim(), email.text.trim(), password.text);
+      if (mounted) reload();
+    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not create admin: $e'))); }
+    finally { name.dispose(); email.dispose(); password.dispose(); }
+  }
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: _cream,
+    appBar: AppBar(title: const Text('User Management'), backgroundColor: _green, foregroundColor: Colors.white),
+    floatingActionButton: FloatingActionButton.extended(backgroundColor: _orange, onPressed: add,
+      icon: const Icon(Icons.person_add_alt_1), label: const Text('Add administrator')),
+    body: FutureBuilder<List<dynamic>>(future: future, builder: (context, snapshot) {
+      if (!snapshot.hasData) return Center(child: snapshot.hasError ? Text('Unable to load users: ${snapshot.error}') : const CircularProgressIndicator());
+      return ListView.builder(padding: const EdgeInsets.fromLTRB(14, 16, 14, 95), itemCount: snapshot.data!.length,
+        itemBuilder: (context, index) { final user = Map<String, dynamic>.from(snapshot.data![index] as Map);
+          return Card(color: Colors.white, child: ListTile(leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+            title: Text((user['name'] ?? '').toString()), subtitle: Text('${user['email']} • ${user['role']}')));
+        });
+    }),
+  );
+}

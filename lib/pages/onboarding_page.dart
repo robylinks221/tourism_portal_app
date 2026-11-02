@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../models/onboarding_slide.dart';
@@ -214,6 +215,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
                               const SizedBox(width: 12),
 
+                              const PlatformBrandLogo(size: 38),
+                              const SizedBox(width: 10),
                               const Text(
                                 'Tourism Portal',
                                 style: TextStyle(

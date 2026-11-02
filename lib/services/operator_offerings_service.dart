@@ -86,7 +86,7 @@ class OperatorOfferingsService {
   Future<OperatorOfferings> fetch() async {
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse('$requestBaseUrl/offerings'),
@@ -135,7 +135,7 @@ class OperatorOfferingsService {
 
     try {
       requestBaseUrl =
-          await AuthService.instance.resolveBaseUrl();
+          await AuthService.instance.resolveFeatureBaseUrl();
 
       final parameters = <String, String>{
         'page': '$page',

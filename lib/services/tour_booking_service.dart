@@ -29,7 +29,7 @@ class TourBookingService {
 
     final token = await AuthService.instance.requireToken();
 
-    final baseUrl = await AuthService.instance.resolveBaseUrl();
+    final baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
 
     final uri = Uri.parse('$baseUrl/bookings/tours/${tour.id}');
 

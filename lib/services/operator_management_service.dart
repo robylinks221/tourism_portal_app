@@ -75,7 +75,7 @@ class OperatorManagementService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final uri = Uri.parse('$requestBaseUrl$path');
       final headers = {
         'Accept': 'application/json',
@@ -118,7 +118,7 @@ class OperatorManagementService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final request =
           http.MultipartRequest('POST', Uri.parse('$requestBaseUrl$path'))
             ..headers.addAll({
@@ -170,7 +170,7 @@ class OperatorManagementService {
     String? requestBaseUrl;
 
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .delete(
             Uri.parse('$requestBaseUrl$path'),

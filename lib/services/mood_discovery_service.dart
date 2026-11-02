@@ -51,7 +51,7 @@ class MoodDiscoveryService {
   Future<MoodDiscoveryData> _load(String moodKey) async {
     String? requestBaseUrl;
     try {
-      requestBaseUrl = await AuthService.instance.resolveBaseUrl();
+      requestBaseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final encodedMood = Uri.encodeComponent(moodKey);
       final response = await http
           .get(

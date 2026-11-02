@@ -32,7 +32,7 @@ class OnboardingService {
     String? baseUrl;
     try {
       final token = admin ? await AuthService.instance.requireToken() : null;
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final response = await http
           .get(
             Uri.parse(
@@ -88,7 +88,7 @@ class OnboardingService {
     final token = await AuthService.instance.requireToken();
     String? baseUrl;
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final path =
           slide == null
               ? '/admin/onboarding-slides'
@@ -151,7 +151,7 @@ class OnboardingService {
     final token = await AuthService.instance.requireToken();
     String? baseUrl;
     try {
-      baseUrl = await AuthService.instance.resolveBaseUrl();
+      baseUrl = await AuthService.instance.resolveFeatureBaseUrl();
       final request = http.Request(method, Uri.parse('$baseUrl$path'))
         ..headers.addAll({
           'Accept': 'application/json',

@@ -1,3 +1,4 @@
+import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/account_management.dart';
@@ -303,6 +304,8 @@ class _OperatorDashboard extends StatelessWidget {
                     ),
                     foregroundColor: colors.primary,
                   ),
+                  const SizedBox(width: 7),
+                  const PlatformBrandLogo(size: 42),
 
                   const SizedBox(width: 12),
 
@@ -311,7 +314,7 @@ class _OperatorDashboard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Good morning, ${AuthService.instance.currentUser?.name ?? 'Operator'}!',
+                          'Good morning, ${(AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Operator') ?? 'Operator')}!',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w300,
                           ),
