@@ -33,15 +33,13 @@ class AuthService {
 
   AuthUser? currentUser;
   Future<String>? _profilePhotoUrlFuture;
+  int _profilePhotoRevision = 0;
 
   Future<String> resolveBaseUrl() => ApiEndpointResolver.instance.resolve();
 
-  // Migration safety switch: non-auth services remain offline until reviewed.
-  Future<String> resolveFeatureBaseUrl() async {
-    throw const ApiException(
-      'This feature is temporarily unavailable while we connect the production API.',
-    );
-  }
+  // Use the same production API for all feature requests, including
+  // catalog data required by guide and operator profile forms.
+  Future<String> resolveFeatureBaseUrl() => resolveBaseUrl();
 
   Future<RememberedLogin> loadRememberedLogin() async {
     final rememberValue = await _storage.read(key: _rememberLoginKey);
@@ -111,7 +109,7 @@ class AuthService {
 
     try {
       final profile = await fetchProfile();
-      return storageUrl(_profilePhotoPath(profile, user.role));
+      return _withImageRevision(storageUrl(_profilePhotoPath(profile, user.role)));
     } on ApiException {
       return '';
     }
@@ -260,6 +258,10 @@ class AuthService {
       }
 
       for (final entry in files.entries) {
+        final image = File(entry.value);
+        if (!await image.exists() || await image.length() == 0) {
+          throw const ApiException('A selected image is missing or empty. Please select it again.');
+        }
         request.files.add(
           await http.MultipartFile.fromPath(entry.key, entry.value),
         );
@@ -267,6 +269,10 @@ class AuthService {
 
       for (final entry in fileLists.entries) {
         for (final path in entry.value) {
+          final image = File(path);
+          if (!await image.exists() || await image.length() == 0) {
+            throw const ApiException('A selected gallery image is missing or empty. Please select it again.');
+          }
           request.files.add(
             await http.MultipartFile.fromPath('${entry.key}[]', path),
           );
@@ -284,17 +290,23 @@ class AuthService {
       }
 
       currentUser = AuthUser.fromJson(Map<String, dynamic>.from(userJson));
-      _profilePhotoUrlFuture =
-          profileJson is Map
-              ? Future<String>.value(
-                storageUrl(
-                  _profilePhotoPath(
-                    Map<String, dynamic>.from(profileJson),
-                    currentUser!.role,
-                  ),
-                ),
-              )
-              : null;
+      // An image upload can succeed while the old URL is still cached by the
+      // image provider. Bump the revision and resolve the canonical image path.
+      if (files.isNotEmpty || fileLists.isNotEmpty) {
+        _profilePhotoRevision++;
+      }
+      _profilePhotoUrlFuture = null;
+      if (profileJson is Map) {
+        final path = _profilePhotoPath(
+          Map<String, dynamic>.from(profileJson),
+          currentUser!.role,
+        );
+        if (path.trim().isNotEmpty) {
+          _profilePhotoUrlFuture = Future<String>.value(
+            _withImageRevision(storageUrl(path)),
+          );
+        }
+      }
       return currentUser!;
     } on ApiEndpointUnavailable catch (error) {
       throw ApiException(_connectionError(error.candidates));
@@ -463,25 +475,44 @@ class AuthService {
     }
   }
 
+  // Accept absolute URLs, /storage/... URLs, and Laravel's storage/...
+  // database paths without accidentally producing /storage/storage/....
   static String storageUrl(String? path) {
-    final value = path?.trim() ?? '';
-    if (value.isEmpty ||
-        value.startsWith('http://') ||
-        value.startsWith('https://')) {
+    var value = path?.trim() ?? '';
+    if (value.isEmpty) return '';
+    final uri = Uri.tryParse(value);
+    if (uri != null && (uri.scheme == 'https' || uri.scheme == 'http')) {
       return value;
     }
+    value = value.replaceFirst(RegExp(r'^/+'), '');
+    if (value.startsWith('api/storage/')) {
+      value = value.substring('api/storage/'.length);
+    } else if (value.startsWith('storage/')) {
+      value = value.substring('storage/'.length);
+    } else if (value.startsWith('public/')) {
+      value = value.substring('public/'.length);
+    }
     final baseUrl = ApiEndpointResolver.instance.preferredBaseUrl;
-    final apiRoot =
-        baseUrl.endsWith('/api')
-            ? baseUrl.substring(0, baseUrl.length - 4)
-            : baseUrl;
+    final apiRoot = baseUrl.endsWith('/api')
+        ? baseUrl.substring(0, baseUrl.length - 4)
+        : baseUrl;
     return '$apiRoot/storage/$value';
+  }
+
+  String _withImageRevision(String url) {
+    if (url.isEmpty || _profilePhotoRevision == 0) return url;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return url;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'profile_revision': '$_profilePhotoRevision',
+    }).toString();
   }
 
   String _connectionError(List<String> candidates) {
     final addresses = candidates.join(' or ');
     return 'Cannot reach the Tourism Portal API at $addresses. '
-        'Keep Docker running and connect the phone and Mac to the same Wi-Fi.';
+        'Check your internet connection and try again.';
   }
 
   Map<String, String> _headers({String? token}) {
