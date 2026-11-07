@@ -10,6 +10,9 @@ import 'admin_catalog_page.dart';
 import 'admin_countries_page.dart';
 import 'admin_onboarding_slides_page.dart';
 import 'admin_provider_verification_page.dart';
+import 'admin_my_profile_page.dart';
+import 'admin_app_appearance_page.dart';
+import 'admin_platform_users_page.dart';
 
 const _primary = Color(0xFF165B5D);
 const _dark = Color(0xFF103F42);
@@ -17,8 +20,6 @@ const _accent = Color(0xFFF46627);
 const _background = Color(0xFFF4EEE1);
 const _secondary = Color(0xFF718082);
 
-/// Admin settings hub. It deliberately exposes only working destinations and
-/// account actions. Editable platform settings require a persistent API.
 class AdminSettingsPage extends StatelessWidget {
   const AdminSettingsPage({super.key});
 
@@ -59,7 +60,7 @@ class AdminSettingsPage extends StatelessWidget {
                       Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
-                      const Text('Tourism Portal administration', style: TextStyle(color: Color(0xFFD5E5E3), fontSize: 12)),
+                      const Text('Tourist Guide administration', style: TextStyle(color: Color(0xFFD5E5E3), fontSize: 12)),
                     ])),
                     const Icon(Icons.verified_user_outlined, color: Colors.white70),
                   ]),
@@ -68,6 +69,8 @@ class AdminSettingsPage extends StatelessWidget {
                 const _Heading('Platform configuration', 'Branding, access and provider policies'),
                 const SizedBox(height: 11),
                 _Group(children: [
+                  _Entry(Icons.palette_outlined, 'App Appearance', 'Fonts, colours and live theme preview', () => _open(context, const AdminAppAppearancePage())),
+                  _Entry(Icons.people_outline_rounded, 'User Management', 'Browse registered accounts', () => _open(context, const AdminPlatformUsersPage())),
                   _Entry(Icons.tune_rounded, 'Platform settings', 'General, appearance, users and providers', () => _open(context, const AdminPlatformSettingsPage())),
                 ]),
                 const SizedBox(height: 26),
@@ -87,9 +90,10 @@ class AdminSettingsPage extends StatelessWidget {
                   _Entry(Icons.workspace_premium_outlined, 'Guide awards', 'Awards and judging', () => _open(context, const AdminAwardsHubPage())),
                 ]),
                 const SizedBox(height: 26),
-                const _Heading('Account & security', 'Access to your administrator session'),
+                const _Heading('Account & security', 'Your administrator account and session'),
                 const SizedBox(height: 11),
                 _Group(children: [
+                  _Entry(Icons.person_outline_rounded, 'My Profile', 'Account details, photo and security', () => _open(context, const AdminMyProfilePage())),
                   _Entry(Icons.logout_rounded, 'Sign out', 'End your current admin session', () => _confirmSignOut(context), accent: true),
                 ]),
                 const SizedBox(height: 23),
@@ -110,7 +114,7 @@ class AdminSettingsPage extends StatelessWidget {
                   ]),
                 ),
                 const SizedBox(height: 24),
-                const Center(child: Text('TOURISM PORTAL  •  ADMIN SETTINGS', style: TextStyle(color: _secondary, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w700))),
+                const Center(child: Text('TOURIST GUIDE  •  ADMIN SETTINGS', style: TextStyle(color: _secondary, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w700))),
               ],
             ),
           ),

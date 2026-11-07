@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 import '../models/onboarding_slide.dart';
 import 'api_endpoint_resolver.dart';
@@ -83,7 +84,7 @@ class OnboardingService {
     required String subtitle,
     required String buttonLabel,
     required bool isActive,
-    String? imagePath,
+    XFile? imageFile,
   }) async {
     final token = await AuthService.instance.requireToken();
     String? baseUrl;
@@ -105,9 +106,14 @@ class OnboardingService {
               'button_label': buttonLabel.trim(),
               'is_active': isActive ? '1' : '0',
             });
-      if (imagePath != null) {
+      if (imageFile != null) {
+        final bytes = await imageFile.readAsBytes();
         request.files.add(
-          await http.MultipartFile.fromPath('image', imagePath),
+          http.MultipartFile.fromBytes(
+            'image',
+            bytes,
+            filename: imageFile.name,
+          ),
         );
       }
       final streamed = await request.send().timeout(

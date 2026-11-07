@@ -11,6 +11,7 @@ import 'admin_countries_page.dart';
 import 'admin_onboarding_slides_page.dart';
 import 'admin_provider_verification_page.dart';
 import 'admin_settings_page.dart';
+import 'admin_manage_users_page.dart';
 
 const _forest = Color(0xFF165B5D);
 const _deep = Color(0xFF103F42);
@@ -96,7 +97,7 @@ class AdminHomePage extends StatelessWidget {
             const _SectionHeading(title: 'Platform administration', subtitle: 'Account and platform controls'),
             const SizedBox(height: 12),
             _ActionGrid(columns: columns, actions: [
-              _Action(Icons.manage_accounts_outlined, 'Manage Users', 'Coming soon', () => _comingSoon(context, 'Manage Users'), enabled: false),
+              _Action(Icons.manage_accounts_outlined, 'Manage Users', 'Account administration', () => _open(context, const AdminManageUsersPage())),
               _Action(Icons.settings_outlined, 'Settings', 'Platform controls', () => _open(context, const AdminSettingsPage())),
             ]),
             const SizedBox(height: 24),
@@ -167,8 +168,7 @@ class _WelcomeHeader extends StatelessWidget {
 
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
+  final String title, subtitle;
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: _deep, letterSpacing: -.4)),

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -482,6 +482,7 @@ class _OnboardingSlideEditorState extends State<_OnboardingSlideEditor> {
   bool _active = true;
   bool _saving = false;
   XFile? _image;
+  Uint8List? _imagePreviewBytes;
 
   @override
   void initState() {
@@ -509,7 +510,20 @@ class _OnboardingSlideEditorState extends State<_OnboardingSlideEditor> {
       imageQuality: 90,
       maxWidth: 1600,
     );
-    if (image != null && mounted) setState(() => _image = image);
+    if (image == null) return;
+    try {
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _image = image;
+        _imagePreviewBytes = bytes;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read the selected image. Please try another image.')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -522,7 +536,7 @@ class _OnboardingSlideEditorState extends State<_OnboardingSlideEditor> {
         subtitle: _subtitle.text,
         buttonLabel: _button.text,
         isActive: _active,
-        imagePath: _image?.path,
+        imageFile: _image,
       );
       if (mounted) Navigator.pop(context, true);
     } on ApiException catch (error) {
@@ -588,8 +602,9 @@ class _OnboardingSlideEditorState extends State<_OnboardingSlideEditor> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child:
-                    _image != null
-                        ? Image.file(File(_image!.path), fit: BoxFit.cover)
+                    _imagePreviewBytes != null
+                        ? Image.memory(_imagePreviewBytes!, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const _ImagePlaceholder())
                         : _ExistingOrPlaceholder(slide: widget.slide),
               ),
             ),
