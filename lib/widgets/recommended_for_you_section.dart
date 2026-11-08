@@ -176,10 +176,7 @@ class _RecommendedTourCard extends StatelessWidget {
     final width =
         (MediaQuery.sizeOf(context).width * .84).clamp(292, 342).toDouble();
 
-    final destination =
-        tour.destinationNames.isEmpty
-            ? 'East Africa'
-            : tour.destinationNames.first;
+    final destination = '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}';
 
     return SizedBox(
       width: width,
