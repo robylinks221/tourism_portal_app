@@ -509,8 +509,8 @@ class _TourCountryBadge extends StatelessWidget {
 
     final label = countries.isNotEmpty
         ? countries.join(' • ').toUpperCase()
-        : tour.destinationNames.isNotEmpty
-            ? tour.destinationNames.first.toUpperCase()
+        : (tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) > 0
+            ? '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}'.toUpperCase()
             : 'EAST AFRICA';
 
     return Align(
@@ -1148,7 +1148,7 @@ Future<void> _showTour(BuildContext context, OperatorTour tour) {
           facts: [
             '${tour.days} ${tour.days == 1 ? 'day' : 'days'}',
             if (tour.destinationNames.isNotEmpty)
-              'Destinations: ${tour.destinationNames.join(', ')}',
+              '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}',
             if (tour.activityNames.isNotEmpty)
               'Activities: ${tour.activityNames.join(', ')}',
           ],
