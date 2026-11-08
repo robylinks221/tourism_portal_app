@@ -4445,11 +4445,7 @@ class _OperatorAllToursPageState extends State<_OperatorAllToursPage> {
                                         Text(
                                           tour.countryNames.isNotEmpty
                                               ? tour.countryNames.join(' • ')
-                                              : tour.destinationNames
-                                                      .isNotEmpty
-                                                  ? tour.destinationNames
-                                                      .first
-                                                  : 'East Africa',
+                                              : '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}',
                                           maxLines: 1,
                                           overflow:
                                               TextOverflow.ellipsis,
@@ -4633,9 +4629,7 @@ class _ProviderTourCard extends StatelessWidget {
 
     final place = tour.countryNames.isNotEmpty
         ? tour.countryNames.join(' • ')
-        : tour.destinationNames.isNotEmpty
-            ? tour.destinationNames.first
-            : 'East Africa';
+        : '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}';
 
     return SizedBox(
       width: 268,
