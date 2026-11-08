@@ -1560,10 +1560,7 @@ class _TourCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final destination =
-        tour.destinationNames.isEmpty
-            ? 'East Africa'
-            : tour.destinationNames.first;
+    final destination = '${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length)} ${(tour.destinationIds.toSet().isNotEmpty ? tour.destinationIds.toSet().length : tour.destinationNames.map((name) => name.trim().toLowerCase()).where((name) => name.isNotEmpty).toSet().length) == 1 ? 'Destination' : 'Destinations'}';
 
     return Material(
       elevation: 10,
@@ -1574,7 +1571,7 @@ class _TourCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: 150,
+          height: 166,
           child: Row(
             children: [
               SizedBox(
