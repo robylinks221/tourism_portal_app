@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../models/catalog_item.dart';
+import '../models/accommodation_room_type.dart';
+import '../services/accommodation_room_type_service.dart';
 
 /// Tourist-facing details for an accommodation already included in the
 /// destination response. No additional API endpoint is required.
@@ -22,6 +24,12 @@ class _AccommodationDetailsPageState extends State<AccommodationDetailsPage> {
 
   final PageController _galleryController = PageController();
   int _selectedPhoto = 0;
+  late final Future<List<AccommodationRoomType>> _roomTypesFuture = _loadRoomTypes();
+
+  Future<List<AccommodationRoomType>> _loadRoomTypes() async {
+    final service = await AccommodationRoomTypeService.forCurrentApp();
+    return service.list(widget.accommodation.id);
+  }
 
   Accommodation get accommodation => widget.accommodation;
 
@@ -176,6 +184,12 @@ class _AccommodationDetailsPageState extends State<AccommodationDetailsPage> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 18),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Room types', style: TextStyle(fontSize: 21, color: _ink, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 13),
+                  _RoomTypesPreview(future: _roomTypesFuture),
+                ]),
                 if (_hasContact) ...[
                   const SizedBox(height: 18),
                   _Section(title: 'Contact information', child: Column(
@@ -317,4 +331,323 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
       ),
     ),
   );
+}
+
+
+class _RoomTypesPreview extends StatefulWidget {
+  const _RoomTypesPreview({required this.future});
+  final Future<List<AccommodationRoomType>> future;
+
+  @override
+  State<_RoomTypesPreview> createState() => _RoomTypesPreviewState();
+}
+
+class _RoomTypesPreviewState extends State<_RoomTypesPreview> {
+  static const _forest = Color(0xFF165B5D);
+  static const _muted = Color(0xFF6B7773);
+  static const _accent = Color(0xFFF46627);
+  final PageController _controller = PageController(viewportFraction: .91);
+  int _current = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _goTo(int index) {
+    _controller.animateToPage(index,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<AccommodationRoomType>>(
+      future: widget.future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 30),
+            child: Center(child: CircularProgressIndicator(color: _forest)),
+          );
+        }
+        if (snapshot.hasError) {
+          return const Text('Room types are temporarily unavailable.');
+        }
+        final rooms = (snapshot.data ?? [])
+            .where((room) => room.isActive)
+            .toList();
+        if (rooms.isEmpty) {
+          return const Text('Room details will be available soon.');
+        }
+        final current = _current.clamp(0, rooms.length - 1);
+        // Keep the cards compact while allowing extra space for longer details.
+        final hasLongDescription = rooms.any((room) =>
+            (room.description?.trim().length ?? 0) > 65);
+        final hasBedType = rooms.any((room) =>
+            room.bedType?.trim().isNotEmpty == true);
+        final carouselHeight = 226.0 +
+            (hasLongDescription ? 52.0 : 0.0) +
+            (hasBedType ? 22.0 : 0.0);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('DISCOVER YOUR SPACE',
+                style: TextStyle(color: _accent, fontSize: 10,
+                    fontWeight: FontWeight.w800, letterSpacing: 1.8)),
+            const SizedBox(height: 7),
+            const Text('Thoughtfully selected rooms for your stay',
+                style: TextStyle(color: _muted, fontSize: 13, height: 1.5)),
+            const SizedBox(height: 18),
+            // Horizontal swipe, with a preview of the next room card.
+            SizedBox(
+              height: carouselHeight,
+              child: PageView.builder(
+                controller: _controller,
+                clipBehavior: Clip.none,
+                itemCount: rooms.length,
+                onPageChanged: (index) => setState(() => _current = index),
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(right: 12, bottom: 6),
+                  child: _PremiumRoomCard(room: rooms[index], index: index),
+                ),
+              ),
+            ),
+            if (rooms.length > 1) ...[
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  Text('${current + 1} / ${rooms.length}',
+                      style: const TextStyle(color: _muted,
+                          fontSize: 12, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(rooms.length, (index) =>
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          height: 5,
+                          width: index == current ? 22 : 6,
+                          decoration: BoxDecoration(
+                            color: index == current ? _forest : _forest.withValues(alpha: .18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        )),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Previous room',
+                    onPressed: current > 0 ? () => _goTo(current - 1) : null,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    color: _forest,
+                  ),
+                  IconButton(
+                    tooltip: 'Next room',
+                    onPressed: current < rooms.length - 1
+                        ? () => _goTo(current + 1) : null,
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    color: _forest,
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PremiumRoomCard extends StatelessWidget {
+  const _PremiumRoomCard({required this.room, required this.index});
+
+  final AccommodationRoomType room;
+  final int index;
+
+  static const _forest = Color(0xFF165B5D);
+  static const _accent = Color(0xFFF46627);
+
+  @override
+  Widget build(BuildContext context) {
+    final description = room.description?.trim() ?? '';
+    final bedType = room.bedType?.trim() ?? '';
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: _forest,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .15)),
+        boxShadow: [
+          BoxShadow(
+            color: _forest.withValues(alpha: .16),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(17, 14, 17, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(Icons.bed_outlined,
+                      color: Colors.white, size: 21),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ROOM ${String.fromCharCode(65 + (index % 26))}',
+                        style: const TextStyle(
+                          color: Color(0xFFFFB88F),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        room.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          height: 1.18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFE1EEEE),
+                  fontSize: 12.5,
+                  height: 1.45,
+                ),
+              ),
+            ],
+            const SizedBox(height: 13),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: [
+                _RoomFeature(
+                  icon: Icons.people_outline_rounded,
+                  label: 'Up to ${room.maxOccupancy} guests',
+                ),
+                if (bedType.isNotEmpty)
+                  _RoomFeature(
+                    icon: Icons.king_bed_outlined,
+                    label: bedType,
+                  ),
+                _RoomFeature(
+                  icon: Icons.meeting_room_outlined,
+                  label: '${room.quantity} ${room.quantity == 1 ? 'room' : 'rooms'}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Container(
+              height: 1,
+              color: Colors.white.withValues(alpha: .22),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'RATE PER NIGHT',
+                        style: TextStyle(
+                          color: Color(0xFFCEE0DE),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${room.currency} ${room.pricePerNight.toStringAsFixed(2)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.nights_stay_outlined,
+                    color: Color(0xFFFFB88F), size: 20),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomFeature extends StatelessWidget {
+  const _RoomFeature({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFFFC4A4), size: 14),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

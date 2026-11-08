@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'accommodation_room_types_page.dart';
+import '../services/accommodation_room_type_service.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 import '../models/catalog_item.dart';
@@ -88,6 +91,28 @@ class _AdminAccommodationsPageState extends State<AdminAccommodationsPage> {
           ),
     );
     if (saved == true && mounted) await _load();
+  }
+
+
+  Future<void> _manageRoomTypes(Accommodation accommodation) async {
+    try {
+      final service = await AccommodationRoomTypeService.forCurrentApp();
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => AccommodationRoomTypesPage(
+            accommodationId: accommodation.id,
+            service: service,
+            admin: true,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to open room types: $error')),
+      );
+    }
   }
 
   Future<void> _delete(Accommodation accommodation) async {
@@ -245,12 +270,18 @@ class _AdminAccommodationsPageState extends State<AdminAccommodationsPage> {
                                   (value) =>
                                       value == 'edit'
                                           ? _edit(item)
-                                          : _delete(item),
+                                          : value == 'rooms'
+                                              ? _manageRoomTypes(item)
+                                              : _delete(item),
                               itemBuilder:
                                   (_) => const [
                                     PopupMenuItem(
                                       value: 'edit',
                                       child: Text('Edit'),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'rooms',
+                                      child: Text('Manage Room Types'),
                                     ),
                                     PopupMenuItem(
                                       value: 'delete',

@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import '../models/accommodation_room_type.dart';
+import '../services/accommodation_room_type_service.dart';
+
+/// Tourist listing, with optional admin actions for room type management.
+class AccommodationRoomTypesPage extends StatefulWidget {
+  const AccommodationRoomTypesPage({super.key,required this.accommodationId,required this.service,this.admin=false});
+  final int accommodationId;
+  final AccommodationRoomTypeService service;
+  final bool admin;
+  @override State<AccommodationRoomTypesPage> createState()=>_AccommodationRoomTypesPageState();
+}
+class _AccommodationRoomTypesPageState extends State<AccommodationRoomTypesPage> {
+  static const green=Color(0xFF165B5D), orange=Color(0xFFF46627), cream=Color(0xFFF4EEE1);
+  late Future<List<AccommodationRoomType>> _future;
+  @override void initState(){super.initState();_reload();}
+  void _reload(){_future=widget.service.list(widget.accommodationId);}
+  Future<void> _edit([AccommodationRoomType? room]) async {
+    final name=TextEditingController(text:room?.name??'');
+    final description=TextEditingController(text:room?.description??'');
+    final price=TextEditingController(text:room?.pricePerNight.toString()??'');
+    final currency=TextEditingController(text:room?.currency??'USD');
+    final occupancy=TextEditingController(text:room?.maxOccupancy.toString()??'2');
+    final beds=TextEditingController(text:room?.bedType??'');
+    final quantity=TextEditingController(text:room?.quantity.toString()??'1');
+    final key=GlobalKey<FormState>();
+    bool saving=false;
+    await showDialog<void>(context:context,builder:(dialogContext)=>StatefulBuilder(builder:(context,setDialogState)=>AlertDialog(
+      title:Text(room==null?'Add room type':'Edit room type'),
+      content:SizedBox(width:450,child:Form(key:key,child:SingleChildScrollView(child:Column(mainAxisSize:MainAxisSize.min,children:[
+        _field(name,'Room name',required:true),_field(description,'Description',lines:3),
+        _field(price,'Price per night',number:true,required:true),_field(currency,'Currency (USD)'),
+        _field(occupancy,'Maximum occupancy',number:true,required:true),_field(beds,'Bed type'),
+        _field(quantity,'Number of rooms',number:true),
+      ])))),
+      actions:[TextButton(onPressed:saving?null:()=>Navigator.pop(dialogContext),child:const Text('Cancel')),
+        FilledButton(onPressed:saving?null:() async {
+          if(!key.currentState!.validate())return;
+          final fields=<String,dynamic>{'name':name.text.trim(),'description':description.text.trim(),
+            'price_per_night':double.parse(price.text),'currency':currency.text.trim().toUpperCase(),
+            'max_occupancy':int.parse(occupancy.text),'bed_type':beds.text.trim(),
+            'quantity':int.tryParse(quantity.text)??0};
+          setDialogState(()=>saving=true);
+          try {if(room==null){await widget.service.create(widget.accommodationId,fields);}else{await widget.service.update(room.id,fields);}
+            if(dialogContext.mounted)Navigator.pop(dialogContext);
+            if(mounted)setState(_reload);
+          }catch(e){if(dialogContext.mounted){ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content:Text('$e')));setDialogState(()=>saving=false);}}
+        },child:Text(saving?'Saving...':'Save'))]
+    )));
+    for(final c in [name,description,price,currency,occupancy,beds,quantity]){c.dispose();}
+  }
+  Widget _field(TextEditingController c,String label,{bool required=false,bool number=false,int lines=1})=>Padding(
+    padding:const EdgeInsets.only(bottom:10),child:TextFormField(controller:c,maxLines:lines,
+      keyboardType:number?const TextInputType.numberWithOptions(decimal:true):TextInputType.text,
+      decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),
+      validator:(v){if(required&&(v==null||v.trim().isEmpty))return 'Required';if(number&&v!=null&&v.isNotEmpty&&double.tryParse(v)==null)return 'Enter a number';return null;},));
+  Future<void> _toggle(AccommodationRoomType room) async {
+    try{await widget.service.setActive(room.id,!room.isActive);if(mounted)setState(_reload);}
+    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$e')));}
+  }
+  @override Widget build(BuildContext context)=>Scaffold(backgroundColor:cream,
+    appBar:AppBar(title:const Text('Room Types'),backgroundColor:cream),
+    floatingActionButton:widget.admin?FloatingActionButton.extended(backgroundColor:orange,onPressed:()=>_edit(),icon:const Icon(Icons.add),label:const Text('Add room')):null,
+    body:FutureBuilder<List<AccommodationRoomType>>(future:_future,builder:(context,snapshot){
+      if(snapshot.connectionState!=ConnectionState.done)return const Center(child:CircularProgressIndicator());
+      if(snapshot.hasError)return Center(child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisSize:MainAxisSize.min,children:[Text('${snapshot.error}',textAlign:TextAlign.center),TextButton(onPressed:()=>setState(_reload),child:const Text('Retry'))])));
+      final rooms=snapshot.data??[];
+      if(rooms.isEmpty)return const Center(child:Text('No room types have been added yet.'));
+      return RefreshIndicator(onRefresh:()async{setState(_reload);await _future;},child:ListView.builder(padding:const EdgeInsets.all(16),itemCount:rooms.length,itemBuilder:(context,index){
+        final room=rooms[index];if(!widget.admin&&!room.isActive)return const SizedBox.shrink();
+        return Card(color:Colors.white,margin:const EdgeInsets.only(bottom:14),child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[Expanded(child:Text(room.name,style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold,color:green))),if(widget.admin)Chip(label:Text(room.isActive?'Active':'Inactive'))]),
+          if(room.description?.isNotEmpty==true)Padding(padding:const EdgeInsets.only(top:8),child:Text(room.description!)),
+          const SizedBox(height:10),Text('${room.currency} ${room.pricePerNight.toStringAsFixed(2)} / night',style:const TextStyle(fontSize:17,fontWeight:FontWeight.w700,color:green)),
+          const SizedBox(height:6),Text('Up to ${room.maxOccupancy} guests${room.bedType?.isNotEmpty==true?' · ${room.bedType}':''} · ${room.quantity} rooms'),
+          if(widget.admin)Row(children:[TextButton.icon(onPressed:()=>_edit(room),icon:const Icon(Icons.edit_outlined),label:const Text('Edit')),
+            TextButton.icon(onPressed:()=>_toggle(room),icon:Icon(room.isActive?Icons.visibility_off_outlined:Icons.visibility_outlined),label:Text(room.isActive?'Deactivate':'Activate'))]),
+        ])));
+      }));
+    }),
+  );
+}
