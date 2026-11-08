@@ -1,4 +1,3 @@
-import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -6,6 +5,8 @@ import '../services/account_management.dart';
 import '../services/session_navigation.dart';
 import '../utils/text_case.dart';
 import '../widgets/catalog_home_sections.dart';
+import '../widgets/luxury_car_hire_home_section.dart';
+import '../widgets/country_discovery_section.dart';
 import '../widgets/current_user_avatar.dart';
 import '../widgets/provider_discovery_sections.dart';
 import 'awards_pages.dart';
@@ -41,7 +42,7 @@ class _GuideHomePageState extends State<GuideHomePage> {
       fullName: user?.name ?? 'Tourist Guide',
       phone: '+256 700 123 456',
       email: user?.email ?? 'guide@tourismportal.ug',
-      location: 'Kampala, Uganda',
+      location: 'Tourist Guide',
       languages: 'English, Luganda, Swahili',
       bio:
           'Certified local guide specialising in Kampala culture, heritage, '
@@ -470,8 +471,6 @@ class _GuideDashboard extends StatelessWidget {
                   ),
                   foregroundColor: colors.primary,
                 ),
-                  const SizedBox(width: 7),
-                  const PlatformBrandLogo(size: 42),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -484,22 +483,12 @@ class _GuideDashboard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            color: colors.secondary,
-                            size: 15,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Kampala, Uganda',
+                      Text(
+                            'Tourist Guide',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: mutedText,
                             ),
                           ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -518,6 +507,14 @@ class _GuideDashboard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 26),
+            const CountryDiscoverySection(),
+            const SizedBox(height: 30),
+            const CatalogHomeSections(),
+              const SizedBox(height: 30),
+              const LuxuryCarHireHomeSection(),
+            const SizedBox(height: 30),
+            const ProviderDiscoverySections(),
+            const SizedBox(height: 30),
             Container(
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
@@ -736,10 +733,6 @@ class _GuideDashboard extends StatelessWidget {
                     ),
                   ),
                 ),
-            const SizedBox(height: 24),
-            const CatalogHomeSections(),
-            const SizedBox(height: 30),
-            const ProviderDiscoverySections(),
           ],
         ),
       ),

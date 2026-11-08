@@ -1,0 +1,320 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../models/catalog_item.dart';
+
+/// Tourist-facing details for an accommodation already included in the
+/// destination response. No additional API endpoint is required.
+class AccommodationDetailsPage extends StatefulWidget {
+  const AccommodationDetailsPage({super.key, required this.accommodation});
+
+  final Accommodation accommodation;
+
+  @override
+  State<AccommodationDetailsPage> createState() => _AccommodationDetailsPageState();
+}
+
+class _AccommodationDetailsPageState extends State<AccommodationDetailsPage> {
+  static const _primary = Color(0xFF165B5D);
+  static const _canvas = Color(0xFFF4EEE1);
+  static const _ink = Color(0xFF192A28);
+  static const _orange = Color(0xFFF46627);
+
+  final PageController _galleryController = PageController();
+  int _selectedPhoto = 0;
+
+  Accommodation get accommodation => widget.accommodation;
+
+  @override
+  void dispose() {
+    _galleryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final photos = accommodation.galleryUrls;
+    return Scaffold(
+      backgroundColor: _canvas,
+      appBar: AppBar(
+        title: const Text('Accommodation', style: TextStyle(fontWeight: FontWeight.w800)),
+        backgroundColor: _canvas,
+        foregroundColor: _ink,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 42),
+        children: [
+          SizedBox(
+            height: 300,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: photos.isEmpty
+                      ? const _PhotoPlaceholder()
+                      : PageView.builder(
+                          controller: _galleryController,
+                          itemCount: photos.length,
+                          onPageChanged: (index) => setState(() => _selectedPhoto = index),
+                          itemBuilder: (context, index) => GestureDetector(
+                            onTap: () => _showPhoto(context, photos, index),
+                            child: Image.network(
+                              photos[index],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const _PhotoPlaceholder(),
+                            ),
+                          ),
+                        ),
+                ),
+                if (photos.length > 1)
+                  Positioned(
+                    right: 18,
+                    bottom: 18,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .65),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text('${_selectedPhoto + 1} / ${photos.length}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (photos.length > 1)
+            SizedBox(
+              height: 92,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+                itemCount: photos.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 9),
+                itemBuilder: (context, index) => GestureDetector(
+                  onTap: () => _galleryController.animateToPage(
+                    index, duration: const Duration(milliseconds: 250), curve: Curves.easeOut),
+                  child: Container(
+                    width: 94,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: index == _selectedPhoto ? _orange : Colors.white,
+                          width: index == _selectedPhoto ? 2.5 : 1),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.network(photos[index], fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const _PhotoPlaceholder()),
+                  ),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('A PLACE TO STAY', style: TextStyle(color: _orange,
+                    fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.8)),
+                const SizedBox(height: 9),
+                Text(accommodation.name, style: const TextStyle(color: _ink,
+                    fontSize: 29, height: 1.12, fontWeight: FontWeight.w900)),
+                if (accommodation.location.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    const Icon(Icons.location_on_outlined, color: _primary, size: 19),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(accommodation.location,
+                        style: const TextStyle(color: _ink, fontSize: 14))),
+                  ]),
+                ],
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: Colors.white,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: Row(children: [
+                    Container(padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: _primary.withValues(alpha: .08),
+                          borderRadius: BorderRadius.circular(14)),
+                      child: const Icon(Icons.bed_outlined, color: _primary)),
+                    const SizedBox(width: 13),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('NIGHTLY RATE', style: TextStyle(color: _primary,
+                            fontSize: 10, letterSpacing: 1.3, fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text(accommodation.formattedPrice,
+                          style: const TextStyle(color: _ink, fontSize: 20,
+                              fontWeight: FontWeight.w900)),
+                      ],
+                    )),
+                  ]),
+                ),
+                const SizedBox(height: 26),
+                _Section(title: 'About this accommodation',
+                  child: Text(accommodation.description.trim().isEmpty
+                      ? 'More information about this accommodation will be available soon.'
+                      : accommodation.description.trim(),
+                      style: const TextStyle(color: _ink, fontSize: 14,
+                          height: 1.7))),
+                if (accommodation.amenities.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _Section(title: 'Amenities & facilities',
+                    child: Wrap(spacing: 8, runSpacing: 8,
+                      children: accommodation.amenities.map((amenity) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(color: _canvas,
+                            borderRadius: BorderRadius.circular(12)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.check_circle_outline_rounded, color: _primary, size: 16),
+                          const SizedBox(width: 7),
+                          Flexible(child: Text(amenity, style: const TextStyle(color: _ink, fontSize: 12,
+                              fontWeight: FontWeight.w600))),
+                        ]),
+                      )).toList(),
+                    ),
+                  ),
+                ],
+                if (_hasContact) ...[
+                  const SizedBox(height: 18),
+                  _Section(title: 'Contact information', child: Column(
+                    children: [
+                      if (_valid(accommodation.contactPhone))
+                        _ContactRow(icon: Icons.phone_outlined, label: 'Phone',
+                            value: accommodation.contactPhone!),
+                      if (_valid(accommodation.contactEmail))
+                        _ContactRow(icon: Icons.mail_outline_rounded, label: 'Email',
+                            value: accommodation.contactEmail!),
+                      if (_valid(accommodation.website))
+                        _ContactRow(icon: Icons.language_rounded, label: 'Website',
+                            value: accommodation.website!),
+                    ],
+                  )),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _valid(String? value) => value != null && value.trim().isNotEmpty;
+  bool get _hasContact => _valid(accommodation.contactPhone) ||
+      _valid(accommodation.contactEmail) || _valid(accommodation.website);
+
+  void _showPhoto(BuildContext context, List<String> photos, int initial) {
+    Navigator.push<void>(context, MaterialPageRoute<void>(
+      builder: (_) => _FullScreenGallery(photos: photos, initialIndex: initial),
+    ));
+  }
+}
+
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.child});
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: const TextStyle(fontSize: 18, color: Color(0xFF192A28),
+          fontWeight: FontWeight.w900)),
+      const SizedBox(height: 14),
+      child,
+    ]),
+  );
+}
+
+class _ContactRow extends StatelessWidget {
+  const _ContactRow({required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 13),
+    child: Row(children: [
+      Icon(icon, color: const Color(0xFF165B5D), size: 21),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Color(0xFF718082), fontSize: 11)),
+          const SizedBox(height: 3),
+          Text(value, style: const TextStyle(color: Color(0xFF192A28),
+              fontWeight: FontWeight.w700)),
+        ],
+      )),
+      IconButton(tooltip: 'Copy $label',
+        onPressed: () {
+          Clipboard.setData(ClipboardData(text: value));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$label copied'), behavior: SnackBarBehavior.floating));
+        },
+        icon: const Icon(Icons.copy_rounded, size: 18, color: Color(0xFF165B5D))),
+    ]),
+  );
+}
+
+class _PhotoPlaceholder extends StatelessWidget {
+  const _PhotoPlaceholder();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: const Color(0xFFE0EAE6),
+    alignment: Alignment.center,
+    child: const Icon(Icons.hotel_rounded, size: 60, color: Color(0xFF165B5D)),
+  );
+}
+
+class _FullScreenGallery extends StatefulWidget {
+  const _FullScreenGallery({required this.photos, required this.initialIndex});
+  final List<String> photos;
+  final int initialIndex;
+
+  @override
+  State<_FullScreenGallery> createState() => _FullScreenGalleryState();
+}
+
+class _FullScreenGalleryState extends State<_FullScreenGallery> {
+  late final PageController _controller;
+  late int _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialIndex;
+    _controller = PageController(initialPage: _current);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white,
+      title: Text('${_current + 1} of ${widget.photos.length}')),
+    body: PageView.builder(
+      controller: _controller,
+      itemCount: widget.photos.length,
+      onPageChanged: (index) => setState(() => _current = index),
+      itemBuilder: (context, index) => InteractiveViewer(
+        minScale: 1,
+        maxScale: 4,
+        child: Center(child: Image.network(widget.photos[index],
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined,
+              color: Colors.white, size: 50))),
+      ),
+    ),
+  );
+}

@@ -1,4 +1,3 @@
-import '../widgets/platform_brand_logo.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -8,6 +7,7 @@ import '../services/session_navigation.dart';
 import '../utils/text_case.dart';
 import '../widgets/sponsored_advertisements.dart';
 import '../widgets/catalog_home_sections.dart';
+import '../widgets/luxury_car_hire_home_section.dart';
 import '../widgets/current_user_avatar.dart';
 import '../widgets/country_discovery_section.dart';
 import '../widgets/multi_country_safaris_section.dart';
@@ -306,8 +306,6 @@ class _HomePage extends StatelessWidget {
                   ),
                   foregroundColor: colors.primary,
                 ),
-                  const SizedBox(width: 7),
-                  const PlatformBrandLogo(size: 42),
 
                 const SizedBox(width: 12),
 
@@ -316,7 +314,7 @@ class _HomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hello, ${(AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Traveller') ?? 'Traveller')}!',
+                        'Good morning, ${(AuthService.instance.currentUser?.name?.trim().split(RegExp(r'\s+')).firstWhere((part) => part.isNotEmpty, orElse: () => 'Traveller') ?? 'Traveller')}!',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -324,24 +322,12 @@ class _HomePage extends StatelessWidget {
 
                       const SizedBox(height: 2),
 
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            color: colors.secondary,
-                            size: 15,
-                          ),
-
-                          const SizedBox(width: 3),
-
-                          Text(
-                            'Kampala, Uganda',
+                      Text(
+                            isGuest ? 'Guest' : 'Tourist',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: mutedText,
                             ),
                           ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -439,6 +425,8 @@ class _HomePage extends StatelessWidget {
             const SizedBox(height: 30),
 
             const CatalogHomeSections(),
+            const SizedBox(height: 30),
+            const LuxuryCarHireHomeSection(),
             const SizedBox(height: 30),
 
             RecommendedForYouSection(isGuest: isGuest),

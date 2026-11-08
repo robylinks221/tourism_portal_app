@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/admin_customization_service.dart';
+import '../theme/app_appearance_controller.dart';
 
 const _teal = Color(0xFF165B5D);
 const _orange = Color(0xFFF46627);
@@ -54,8 +55,23 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
   Future<void> _save() async {
     setState(() { busy = true; error = null; });
     try {
-      await AdminCustomizationService.instance.saveAppearance(font: font, primary: _hex(primary),
+      final saved = await AdminCustomizationService.instance.saveAppearance(
+        font: font, primary: _hex(primary),
         secondary: _hex(secondary), background: _hex(background), mode: mode);
+      // Apply selected values immediately, even if the save endpoint returns
+      // only a success message instead of the full appearance object.
+      AppAppearanceController.instance.apply({
+        'primary_color': _hex(primary),
+        'secondary_color': _hex(secondary),
+        'background_color': _hex(background),
+        'font_family': font,
+        'display_mode': mode,
+      });
+      // Read back the authoritative saved values for subsequent launches.
+      // Do not block immediate feedback on a second network request.
+      if (saved['appearance'] is Map || saved['primary_color'] != null) {
+        AppAppearanceController.instance.apply(saved);
+      }
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Appearance saved on the server.')));
     } catch (e) { if (mounted) setState(() => error = e.toString()); }
     finally { if (mounted) setState(() => busy = false); }
@@ -65,6 +81,17 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
     setState(() { busy = true; error = null; });
     try {
       final data = await AdminCustomizationService.instance.resetAppearance();
+      AppAppearanceController.instance.apply(
+        data['appearance'] is Map || data['primary_color'] != null
+            ? data
+            : {
+                'primary_color': '#165B5D',
+                'secondary_color': '#F46627',
+                'background_color': '#F4EEE1',
+                'font_family': 'Nexa',
+                'display_mode': 'system',
+              },
+      );
       if (!mounted) return;
       setState(() {
         primary = _parseColor(data['primary_color'], _teal);
@@ -93,12 +120,12 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F5F0),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: _ink,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
-        title: const Text('App Appearance',
+        title: const Text('Appearance Studio',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19)),
         actions: [
           IconButton(
@@ -112,17 +139,18 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 22, 18, 36),
+            padding: const EdgeInsets.fromLTRB(18, 24, 18, 42),
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF123F41), Color(0xFF236E6B)],
+                    colors: [primary, Color.lerp(primary, Colors.black, .34)!],
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [BoxShadow(color: primary.withValues(alpha: .18), blurRadius: 26, offset: const Offset(0, 12))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,11 +160,11 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
                             fontSize: 10, fontWeight: FontWeight.w800,
                             letterSpacing: 2.2)),
                     const SizedBox(height: 12),
-                    const Text('Make it yours.',
+                    const Text('Your brand, beautifully.',
                         style: TextStyle(color: Colors.white, fontSize: 29,
                             fontWeight: FontWeight.w800)),
                     const SizedBox(height: 8),
-                    const Text('Refine your typography and brand palette in one place.',
+                    const Text('A consistent visual identity across every journey. Fine-tune the colours and typography of Tourist Guide.',
                         style: TextStyle(color: Color(0xFFDFEBE8), height: 1.5)),
                     const SizedBox(height: 17),
                     Container(
@@ -145,7 +173,7 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
                         color: Colors.white.withValues(alpha: .12),
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      child: const Text('LIVE PREVIEW · NOT PUBLISHED',
+                      child: const Text('LIVE DESIGN PREVIEW',
                           style: TextStyle(color: Colors.white, fontSize: 10,
                               letterSpacing: 1, fontWeight: FontWeight.w700)),
                     ),
@@ -261,7 +289,7 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
                 label: const Text('Restore default theme'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _teal,
-                  minimumSize: const Size.fromHeight(50),
+                  minimumSize: const Size.fromHeight(54),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
@@ -275,9 +303,9 @@ class _AdminAppAppearancePageState extends State<AdminAppAppearancePage> {
                 onChanged: busy ? null : (v) { if (v != null) setState(() => mode = v); }),
               const SizedBox(height: 12),
               FilledButton.icon(onPressed: busy ? null : _save, icon: const Icon(Icons.cloud_upload_outlined),
-                label: Text(busy ? 'Please wait…' : 'Save appearance to server')),
+                label: Text(busy ? 'Saving changes…' : 'Publish appearance')),
               const SizedBox(height: 10),
-              const Text('Saved settings are available to all users through the public API. Applying them globally requires wiring the app root theme to the appearance service.',
+              const Text('Published colours update theme-aware screens immediately. Other screens will follow as their fixed colours are migrated.',
                 textAlign: TextAlign.center, style: TextStyle(color: _muted, fontSize: 12, height: 1.5)),
             ],
           ),

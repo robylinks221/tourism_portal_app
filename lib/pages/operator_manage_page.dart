@@ -1356,8 +1356,10 @@ class _TourEditorState extends State<_TourEditor> {
   late final Set<int> _activityIds;
   late final Set<int> _destinationIds;
   late final Set<int> _moodIds;
+  late final Set<String> _countriesCovered;
   late final List<_ItineraryStopDraft> _itinerary;
   String? _imagePath;
+  final List<String> _galleryPaths = [];
   bool _active = true;
   bool _saving = false;
 
@@ -1378,6 +1380,15 @@ class _TourEditorState extends State<_TourEditor> {
     _activityIds = {...?tour?.activityIds};
     _destinationIds = {...?tour?.destinationIds};
     _moodIds = {...?tour?.moodIds};
+    _countriesCovered = {...?tour?.countryNames};
+    if (_countriesCovered.isEmpty) {
+      _countriesCovered.addAll(
+        widget.catalog.destinations
+            .where((item) => _destinationIds.contains(item.id))
+            .map((item) => item.country?.trim() ?? '')
+            .where((country) => country.isNotEmpty),
+      );
+    }
     _itinerary =
         (tour?.itinerary ?? const <TourItineraryStop>[])
             .map(_ItineraryStopDraft.fromStop)
@@ -1414,7 +1425,13 @@ class _TourEditorState extends State<_TourEditor> {
       );
       return;
     }
-    setState(() => _itinerary.add(_ItineraryStopDraft()));
+    final nextDay = _itinerary.isEmpty
+        ? 1
+        : _itinerary.map((stop) => int.tryParse(stop.endDay.text) ?? 0)
+            .fold<int>(0, (a, b) => a > b ? a : b) + 1;
+    setState(() => _itinerary.add(_ItineraryStopDraft(
+      day: '$nextDay', endDay: '$nextDay',
+    )));
   }
 
   void _removeItineraryStop(int index) {
@@ -1457,6 +1474,17 @@ class _TourEditorState extends State<_TourEditor> {
     if (image != null && mounted) setState(() => _imagePath = image.path);
   }
 
+  Future<void> _pickGalleryImages() async {
+    final images = await _picker.pickMultiImage(imageQuality: 85, maxWidth: 2200);
+    if (!mounted || images.isEmpty) return;
+    setState(() {
+      for (final image in images) {
+        if (_galleryPaths.length >= 3) break;
+        if (!_galleryPaths.contains(image.path)) _galleryPaths.add(image.path);
+      }
+    });
+  }
+
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
     if (widget.tour == null && _imagePath == null) {
@@ -1479,9 +1507,31 @@ class _TourEditorState extends State<_TourEditor> {
       _message('Add at least one item not included in the tour price.');
       return;
     }
+    for (final stop in _itinerary) {
+      if (stop.title.text.trim().isEmpty || stop.description.text.trim().isEmpty ||
+          stop.day.text.trim().isEmpty || stop.endDay.text.trim().isEmpty) {
+        _message('Complete the day range, title and description for every itinerary entry.');
+        return;
+      }
+    }
     final tourDays = int.tryParse(_days.text.trim()) ?? 0;
-    if (_itinerary.length > tourDays) {
-      _message('Remove itinerary days that are later than the tour duration.');
+    final coveredDays = <int>{};
+    for (final stop in _itinerary) {
+      final start = int.tryParse(stop.day.text.trim());
+      final end = int.tryParse(stop.endDay.text.trim());
+      if (start == null || end == null || start < 1 || end < start || end > tourDays) {
+        _message('Check the itinerary day ranges against the tour duration.');
+        return;
+      }
+      for (var day = start; day <= end; day++) {
+        if (!coveredDays.add(day)) {
+          _message('Itinerary day ranges cannot overlap.');
+          return;
+        }
+      }
+    }
+    if (_countriesCovered.isEmpty) {
+      _message('Select at least one country covered by this safari.');
       return;
     }
 
@@ -1505,13 +1555,18 @@ class _TourEditorState extends State<_TourEditor> {
       }
       for (var index = 0; index < _itinerary.length; index++) {
         final stop = _itinerary[index];
-        fields['itinerary[$index][day]'] = '${index + 1}';
+        fields['itinerary[$index][day]'] = stop.day.text.trim();
+        fields['itinerary[$index][end_day]'] = stop.endDay.text.trim();
         fields['itinerary[$index][title]'] = stop.title.text.trim();
         fields['itinerary[$index][description]'] = stop.description.text.trim();
+      }
+      for (var index = 0; index < _countriesCovered.length; index++) {
+        fields['country_names[$index]'] = _countriesCovered.elementAt(index);
       }
       await OperatorManagementService.instance.saveTour(
         tour: widget.tour,
         imagePath: _imagePath,
+        galleryPaths: _galleryPaths,
         activityIds: _activityIds.toList(),
         destinationIds: _destinationIds.toList(),
         moodIds: _moodIds.toList(),
@@ -1544,6 +1599,31 @@ class _TourEditorState extends State<_TourEditor> {
           label: 'Select tour image',
           onTap: _pickImage,
         ),
+        const SizedBox(height: 16),
+        Text('TOUR PHOTO GALLERY', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF165B5D))),
+        const SizedBox(height: 6),
+        const Text('Add up to three gallery photos for the tour details slider. Your main cover image stays separate.'),
+        const SizedBox(height: 10),
+        SizedBox(height: 106, child: ListView(scrollDirection: Axis.horizontal, children: [
+          for (var i = 0; i < _galleryPaths.length; i++) Padding(
+            padding: const EdgeInsets.only(right: 9),
+            child: Stack(children: [
+              ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(File(_galleryPaths[i]), width: 122, height: 100, fit: BoxFit.cover)),
+              Positioned(right: 2, top: 2, child: IconButton.filledTonal(
+                onPressed: () => setState(() => _galleryPaths.removeAt(i)),
+                icon: const Icon(Icons.close_rounded, size: 17),
+              )),
+            ]),
+          ),
+          if (_galleryPaths.length < 3) InkWell(
+            onTap: _pickGalleryImages,
+            child: Container(width: 122, height: 100, decoration: BoxDecoration(
+              color: const Color(0xFF165B5D).withOpacity(.07), borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF165B5D).withOpacity(.2))),
+              child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate_outlined), SizedBox(height: 5), Text('Add photos')]),
+            ),
+          ),
+        ])),
         const SizedBox(height: 14),
         TextFormField(
           controller: _name,
@@ -1641,9 +1721,16 @@ class _TourEditorState extends State<_TourEditor> {
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 14),
-        _CountriesCoveredSummary(
-          destinations: widget.catalog.destinations,
-          selectedIds: _destinationIds,
+        _CountriesCoveredPicker(
+          availableCountries: {
+            'Uganda', 'Rwanda', 'Kenya', 'Tanzania',
+            ...widget.catalog.destinations
+                .map((item) => item.country?.trim() ?? '')
+                .where((name) => name.isNotEmpty),
+            ..._countriesCovered,
+          }.toList()..sort(),
+          selectedCountries: _countriesCovered,
+          onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 18),
         _TourMoodSelectionField(
@@ -1855,27 +1942,34 @@ class _PackageItemsEditor extends StatelessWidget {
 }
 
 class _ItineraryStopDraft {
-  _ItineraryStopDraft({String? title, String? description})
-    : title = TextEditingController(text: title),
-      description = TextEditingController(text: description);
+  _ItineraryStopDraft({String? day, String? endDay, String? title, String? description})
+      : day = TextEditingController(text: day),
+        endDay = TextEditingController(text: endDay),
+        title = TextEditingController(text: title),
+        description = TextEditingController(text: description);
 
-  factory _ItineraryStopDraft.fromStop(TourItineraryStop stop) {
-    return _ItineraryStopDraft(
-      title: stop.title,
-      description: stop.description,
-    );
-  }
+  factory _ItineraryStopDraft.fromStop(TourItineraryStop stop) =>
+      _ItineraryStopDraft(
+        day: '${stop.day}',
+        endDay: '${stop.endDay}',
+        title: stop.title,
+        description: stop.description,
+      );
 
+  final TextEditingController day;
+  final TextEditingController endDay;
   final TextEditingController title;
   final TextEditingController description;
 
   void dispose() {
+    day.dispose();
+    endDay.dispose();
     title.dispose();
     description.dispose();
   }
 }
 
-class _ItineraryBuilder extends StatelessWidget {
+class _ItineraryBuilder extends StatefulWidget {
   const _ItineraryBuilder({
     required this.stops,
     required this.onAdd,
@@ -1885,6 +1979,32 @@ class _ItineraryBuilder extends StatelessWidget {
   final List<_ItineraryStopDraft> stops;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
+
+  @override
+  State<_ItineraryBuilder> createState() => _ItineraryBuilderState();
+}
+
+class _ItineraryBuilderState extends State<_ItineraryBuilder> {
+  final Set<_ItineraryStopDraft> _expanded = <_ItineraryStopDraft>{};
+
+  @override
+  void didUpdateWidget(covariant _ItineraryBuilder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Existing itinerary entries start collapsed. Newly added entries open
+    // immediately so the provider can continue writing without extra taps.
+    for (final stop in widget.stops) {
+      if (!oldWidget.stops.contains(stop)) _expanded.add(stop);
+    }
+    _expanded.removeWhere((stop) => !widget.stops.contains(stop));
+  }
+
+  String _dayRangeLabel(_ItineraryStopDraft stop, int index) {
+    final start = int.tryParse(stop.day.text.trim());
+    final end = int.tryParse(stop.endDay.text.trim());
+    if (start == null || start < 1) return 'ITINERARY ${index + 1}';
+    if (end == null || end <= start) return 'DAY $start';
+    return 'DAYS $start–$end';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1900,14 +2020,14 @@ class _ItineraryBuilder extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Safari Trail',
+                    'Itinerary',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w300,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Build the real journey, one day at a time.',
+                    'Tap a day to expand and edit it. All existing days start closed.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -1915,14 +2035,9 @@ class _ItineraryBuilder extends StatelessWidget {
                 ],
               ),
             ),
-            FilledButton.tonalIcon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add day'),
-            ),
           ],
         ),
-        if (stops.isEmpty) ...[
+        if (widget.stops.isEmpty) ...[
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
@@ -1938,7 +2053,7 @@ class _ItineraryBuilder extends StatelessWidget {
             ),
           ),
         ],
-        for (var index = 0; index < stops.length; index++) ...[
+        for (var index = 0; index < widget.stops.length; index++) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
@@ -1956,7 +2071,13 @@ class _ItineraryBuilder extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Row(
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => setState(() {
+                    final stop = widget.stops[index];
+                    if (!_expanded.add(stop)) _expanded.remove(stop);
+                  }),
+                  child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -1968,7 +2089,7 @@ class _ItineraryBuilder extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        'DAY ${index + 1}',
+                        _dayRangeLabel(widget.stops[index], index),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colors.onPrimary,
                           fontWeight: FontWeight.w900,
@@ -1977,16 +2098,37 @@ class _ItineraryBuilder extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    Icon(_expanded.contains(widget.stops[index])
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded),
                     IconButton(
                       tooltip: 'Remove day ${index + 1}',
-                      onPressed: () => onRemove(index),
+                      onPressed: () => widget.onRemove(index),
                       icon: const Icon(Icons.delete_outline_rounded),
                     ),
                   ],
                 ),
+                ),
+                if (_expanded.contains(widget.stops[index])) ...[
                 const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: TextFormField(
+                    controller: widget.stops[index].day,
+                    keyboardType: TextInputType.number,
+                    validator: _required,
+                    decoration: const InputDecoration(labelText: 'From day', hintText: '3'),
+                  )),
+                  const SizedBox(width: 12),
+                  Expanded(child: TextFormField(
+                    controller: widget.stops[index].endDay,
+                    keyboardType: TextInputType.number,
+                    validator: _required,
+                    decoration: const InputDecoration(labelText: 'To day', hintText: '4'),
+                  )),
+                ]),
+                const SizedBox(height: 12),
                 TextFormField(
-                  controller: stops[index].title,
+                  controller: widget.stops[index].title,
                   validator: _required,
                   maxLength: 160,
                   decoration: const InputDecoration(
@@ -1996,7 +2138,7 @@ class _ItineraryBuilder extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
-                  controller: stops[index].description,
+                  controller: widget.stops[index].description,
                   validator: _required,
                   minLines: 3,
                   maxLines: 6,
@@ -2006,10 +2148,28 @@ class _ItineraryBuilder extends StatelessWidget {
                     alignLabelWithHint: true,
                   ),
                 ),
+                ],
               ],
             ),
           ),
         ],
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: widget.onAdd,
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: Text(widget.stops.isEmpty ? 'Add first day' : 'Add next day'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF165B5D),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -2560,6 +2720,44 @@ class _SearchableDestinationFieldState
       ],
     );
   }
+}
+
+class _CountriesCoveredPicker extends StatelessWidget {
+  const _CountriesCoveredPicker({required this.availableCountries,
+    required this.selectedCountries, required this.onChanged});
+
+  final List<String> availableCountries;
+  final Set<String> selectedCountries;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFF165B5D).withOpacity(.055),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFF165B5D).withOpacity(.16)),
+    ),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Countries Covered', style: TextStyle(
+        fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF165B5D))),
+      const SizedBox(height: 5),
+      const Text('Choose every country included in this safari.'),
+      const SizedBox(height: 12),
+      Wrap(spacing: 8, runSpacing: 8, children: availableCountries.map((country) =>
+        FilterChip(
+          label: Text(country),
+          selected: selectedCountries.contains(country),
+          onSelected: (selected) {
+            if (selected) { selectedCountries.add(country); }
+            else { selectedCountries.remove(country); }
+            onChanged();
+          },
+        ),
+      ).toList()),
+    ]),
+  );
 }
 
 class _CountriesCoveredSummary extends StatelessWidget {

@@ -9,6 +9,7 @@ import '../services/catalog_service.dart';
 import '../widgets/provider_discovery_sections.dart';
 import 'tour_details_page.dart';
 import 'activity_details_page.dart';
+import 'accommodation_details_page.dart';
 
 class DestinationDetailsPage extends StatefulWidget {
   const DestinationDetailsPage({super.key, required this.item});
@@ -85,6 +86,15 @@ class _DestinationDetailsPageState extends State<DestinationDetailsPage> {
     );
   }
 
+  Future<void> _openAccommodation(Accommodation accommodation) async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => AccommodationDetailsPage(accommodation: accommodation),
+      ),
+    );
+  }
+
   Future<void> _openProvider(CommunityMember member) async {
     await Navigator.push<void>(
       context,
@@ -158,6 +168,7 @@ class _DestinationDetailsPageState extends State<DestinationDetailsPage> {
                                 onOpenRelated: _openRelated,
                                 onOpenTour: _openTour,
                                 onOpenProvider: _openProvider,
+                                onOpenAccommodation: _openAccommodation,
                                 onViewAllTours: () =>
                                     _viewAllTours(snapshot.data!.detail),
                                 onViewAllProviders: () =>
@@ -348,6 +359,7 @@ class _Content extends StatelessWidget {
     required this.onOpenRelated,
     required this.onOpenTour,
     required this.onOpenProvider,
+    required this.onOpenAccommodation,
     required this.onViewAllTours,
     required this.onViewAllProviders,
   });
@@ -356,6 +368,7 @@ class _Content extends StatelessWidget {
   final ValueChanged<CatalogItem> onOpenRelated;
   final ValueChanged<OperatorTour> onOpenTour;
   final ValueChanged<CommunityMember> onOpenProvider;
+  final ValueChanged<Accommodation> onOpenAccommodation;
   final VoidCallback onViewAllTours;
   final VoidCallback onViewAllProviders;
 
@@ -532,6 +545,7 @@ class _Content extends StatelessWidget {
                 ) ...[
                   _AccommodationCard(
                     accommodation: detail.accommodations[index],
+                    onTap: () => onOpenAccommodation(detail.accommodations[index]),
                   ),
                   if (index != detail.accommodations.length - 1)
                     const SizedBox(height: 11),
@@ -1825,15 +1839,22 @@ class _ProviderCard extends StatelessWidget {
 }
 
 class _AccommodationCard extends StatelessWidget {
-  const _AccommodationCard({required this.accommodation});
+  const _AccommodationCard({required this.accommodation, required this.onTap});
 
   final Accommodation accommodation;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
+    return Material(
+      color: const Color(0xFFF8F7F2),
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F7F2),
@@ -1885,7 +1906,10 @@ class _AccommodationCard extends StatelessWidget {
               ],
             ),
           ),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF165B5D)),
         ],
+      ),
+      ),
       ),
     );
   }

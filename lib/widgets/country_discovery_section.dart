@@ -44,7 +44,7 @@ class _CountryDiscoverySectionState extends State<CountryDiscoverySection> {
             const AppSectionHeader(
               title: 'Explore East Africa',
               subtitle:
-                  'Discover unforgettable experiences across East Africa.',
+                  'Discover remarkable safaris across four extraordinary destinations.',
             ),
             const SizedBox(height: 15),
             if (snapshot.connectionState != ConnectionState.done)
@@ -80,16 +80,21 @@ class _CountryGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        const gap = 12.0;
-        final width = (constraints.maxWidth - gap) / 2;
-        final height = (width * 1.27).clamp(194.0, 235.0).toDouble();
+        const gap = 14.0;
+        final columns = constraints.maxWidth >= 950
+            ? 4
+            : constraints.maxWidth >= 620
+                ? 3
+                : 2;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final height = (width * 1.32).clamp(195.0, 340.0).toDouble();
 
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: countries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
+            crossAxisCount: columns,
             crossAxisSpacing: gap,
             mainAxisSpacing: gap,
             mainAxisExtent: height,
@@ -131,10 +136,10 @@ class _CountryCard extends StatelessWidget {
 
     return Material(
       color: const Color(0xFF165B5D),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(22),
       clipBehavior: Clip.antiAlias,
-      elevation: 5,
-      shadowColor: Colors.black.withValues(alpha: .14),
+      elevation: 7,
+      shadowColor: Colors.black.withValues(alpha: .20),
       child: InkWell(
         onTap: onTap,
         child: Stack(
@@ -148,9 +153,9 @@ class _CountryCard extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Color(0x00000000),
-                    Color(0x12000000),
-                    Color(0x72000000),
-                    Color(0xE0001918),
+                    Color(0x25000000),
+                    Color(0xA8000000),
+                    Color(0xF5000000),
                   ],
                   stops: [0, .45, .70, 1],
                 ),
@@ -159,7 +164,7 @@ class _CountryCard extends StatelessWidget {
             Positioned(
               left: 14,
               right: 12,
-              bottom: 14,
+              bottom: 16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -184,29 +189,47 @@ class _CountryCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 11),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .17),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .48),
-                        width: .8,
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${country.tourCount} ${country.tourCount == 1 ? 'Tour' : 'Tours'}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .96),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: .2,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      '${country.tourCount} ${country.tourCount == 1 ? 'Tour' : 'Tours'}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: .75),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: .18),
+                              blurRadius: 12,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_outward_rounded,
+                          color: Color(0xFF165B5D),
+                          size: 20,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

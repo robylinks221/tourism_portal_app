@@ -19,24 +19,39 @@ import 'services/auth_service.dart';
 
 import 'theme/app_design_system.dart';
 import 'theme/field_guide_theme.dart';
+import 'theme/app_appearance_controller.dart';
 
 void main() {
   runApp(const TourismPortalApp());
 }
 
-class TourismPortalApp extends StatelessWidget {
+class TourismPortalApp extends StatefulWidget {
   const TourismPortalApp({super.key});
+
+  @override
+  State<TourismPortalApp> createState() => _TourismPortalAppState();
+}
+
+class _TourismPortalAppState extends State<TourismPortalApp> {
+  final AppAppearanceController appearance = AppAppearanceController.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    // Public endpoint: guests receive the same published appearance.
+    appearance.refresh();
+  }
 
   // ============================================================
   // LIGHT THEME
   // ============================================================
 
   ThemeData _lightTheme() {
-    const primary = FieldGuidePalette.primary;
+    final primary = appearance.primary;
 
-    const secondary = FieldGuidePalette.secondary;
+    final secondary = appearance.secondary;
 
-    const background = FieldGuidePalette.background;
+    final background = appearance.background;
 
     const darkText = FieldGuidePalette.ink;
 
@@ -69,7 +84,7 @@ class TourismPortalApp extends StatelessWidget {
       // ========================================================
       // APP BAR
       // ========================================================
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: background,
 
         foregroundColor: darkText,
@@ -109,7 +124,7 @@ class TourismPortalApp extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.medium),
 
-          borderSide: const BorderSide(color: primary, width: 1.6),
+          borderSide: BorderSide(color: primary, width: 1.6),
         ),
 
         errorBorder: OutlineInputBorder(
@@ -151,7 +166,7 @@ class TourismPortalApp extends StatelessWidget {
 
           minimumSize: const Size(0, 52),
 
-          side: const BorderSide(color: primary),
+          side: BorderSide(color: primary),
 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.medium),
@@ -169,10 +184,10 @@ class TourismPortalApp extends StatelessWidget {
       // ========================================================
       // NAVIGATION BAR
       // ========================================================
-      navigationBarTheme: const NavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         backgroundColor: FieldGuidePalette.surface,
 
-        indicatorColor: FieldGuidePalette.mist,
+        indicatorColor: primary.withValues(alpha: .12),
 
         elevation: 0,
 
@@ -213,11 +228,11 @@ class TourismPortalApp extends StatelessWidget {
   // ============================================================
 
   ThemeData _darkTheme() {
-    const primary = FieldGuidePalette.sage;
+    final primary = appearance.primary;
 
-    const secondary = FieldGuidePalette.secondary;
+    final secondary = appearance.secondary;
 
-    const background = FieldGuidePalette.night;
+    final background = appearance.mode == ThemeMode.dark ? FieldGuidePalette.night : FieldGuidePalette.night;
 
     const surface = FieldGuidePalette.nightSurface;
 
@@ -289,7 +304,7 @@ class TourismPortalApp extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.medium),
 
-          borderSide: const BorderSide(color: primary, width: 1.6),
+          borderSide: BorderSide(color: primary, width: 1.6),
         ),
 
         errorBorder: OutlineInputBorder(
@@ -325,7 +340,7 @@ class TourismPortalApp extends StatelessWidget {
 
           minimumSize: const Size(0, 52),
 
-          side: const BorderSide(color: primary),
+          side: BorderSide(color: primary),
 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.medium),
@@ -337,8 +352,8 @@ class TourismPortalApp extends StatelessWidget {
         style: TextButton.styleFrom(foregroundColor: primary),
       ),
 
-      navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: Color(0xFF171D28),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF171D28),
 
         indicatorColor: Color(0xFF294D4C),
 
@@ -376,22 +391,34 @@ class TourismPortalApp extends StatelessWidget {
     );
   }
 
+  ThemeData _applyFont(ThemeData theme) {
+    final family = appearance.fontFamily;
+    if (family == null || family.isEmpty) return theme;
+    return theme.copyWith(
+      textTheme: theme.textTheme.apply(fontFamily: family),
+      primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: family),
+    );
+  }
+
   // ============================================================
   // APPLICATION
   // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return ListenableBuilder(
+      listenable: appearance,
+      builder: (context, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
 
       title: 'Tourism Portal',
 
-      theme: _lightTheme(),
+      theme: _applyFont(_lightTheme()),
 
-      darkTheme: _darkTheme(),
+      darkTheme: _applyFont(_darkTheme()),
 
       // Keep light theme for now.
+      // Keep forms and dashboard readable until every dark-mode page is styled.
       themeMode: ThemeMode.light,
 
       // First page is handled through the session gate.
@@ -437,6 +464,7 @@ class TourismPortalApp extends StatelessWidget {
         // ------------------------------------------------------
         '/operators': (context) => const AllTourOperatorsPage(),
       },
+      ),
     );
   }
 }
@@ -506,14 +534,9 @@ class _LaunchGateState extends State<_LaunchGate> {
         // =========================================================
 
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            backgroundColor: FieldGuidePalette.background,
-
-            body: Center(
-              child: CircularProgressIndicator(
-                color: FieldGuidePalette.primary,
-              ),
-            ),
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
           );
         }
 

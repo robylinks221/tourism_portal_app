@@ -106,7 +106,7 @@ class _CatalogHomeSectionsState extends State<CatalogHomeSections> {
           children: [
             // ============================================================
             // CHOOSE YOUR EXPERIENCE
-            // UNCHANGED
+            // LUXURY EDITORIAL CARDS
             // ============================================================
 
             const AppSectionHeader(
@@ -120,7 +120,7 @@ class _CatalogHomeSectionsState extends State<CatalogHomeSections> {
               _ExperienceEmptyState()
             else
               SizedBox(
-                height: 218,
+                height: 265,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   clipBehavior: Clip.none,
@@ -380,20 +380,16 @@ class _ExperienceCard extends StatelessWidget {
   final String imageUrl;
   final VoidCallback onTap;
 
-  static const Color _primary = Color(0xFF165B5D);
-  static const Color _secondary = Color(0xFFF46627);
-
   @override
   Widget build(BuildContext context) {
     final visual = _ExperienceVisual.fromMood(mood);
-
     return SizedBox(
-      width: 178,
+      width: 205,
       child: Material(
-        elevation: 10,
-        shadowColor: Colors.black.withValues(alpha: .22),
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(27),
+        elevation: 7,
+        shadowColor: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(25),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -406,123 +402,76 @@ class _ExperienceCard extends StatelessWidget {
                   child: Image.network(
                     imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) {
-                      return _fallback(visual);
-                    },
+                    errorBuilder: (_, __, ___) => _fallback(visual),
                   ),
                 )
               else
                 _fallback(visual),
-
-              DecoratedBox(
+              const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
+                    stops: [0, .35, .67, 1],
                     colors: [
-                      Colors.black.withValues(alpha: .05),
-                      visual.colors.last.withValues(alpha: .30),
-                      Colors.black.withValues(alpha: .82),
-                    ],
-                    stops: const [
-                      0,
-                      .48,
-                      1,
+                      Color(0x08000000),
+                      Color(0x14000000),
+                      Color(0x8A000000),
+                      Color(0xF0000000),
                     ],
                   ),
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.all(16),
+              // Subtle visual accent; the entire card remains the navigation target.
+              Positioned(
+                top: 13,
+                right: 13,
+                child: Container(
+                  width: 33,
+                  height: 33,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: .18),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: .25),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.favorite_border_rounded,
+                    color: Colors.white.withValues(alpha: .80),
+                    size: 18,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 17,
+                right: 17,
+                bottom: 17,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .17),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: .24),
-                        ),
-                      ),
-                      child: Icon(
-                        visual.icon,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    Container(
-                      width: 30,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: _secondary,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-
-                    const SizedBox(height: 9),
-
                     Text(
                       mood.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                height: 1.08,
-                                letterSpacing: -.25,
-                              ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.12,
+                        letterSpacing: -.3,
+                      ),
                     ),
-
                     const SizedBox(height: 7),
-
                     Text(
                       mood.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.white.withValues(alpha: .78),
-                                height: 1.3,
-                              ),
-                    ),
-
-                    const SizedBox(height: 13),
-
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _primary.withValues(alpha: .88),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Explore',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ],
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: .85),
+                        fontSize: 11,
+                        height: 1.32,
                       ),
                     ),
                   ],
@@ -535,10 +484,8 @@ class _ExperienceCard extends StatelessWidget {
     );
   }
 
-  Widget _fallback(
-    _ExperienceVisual visual,
-  ) {
-    return Container(
+  Widget _fallback(_ExperienceVisual visual) {
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

@@ -37,9 +37,9 @@ class AdminHomePage extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final columns = width >= 760 ? 3 : 2;
     return Scaffold(
-      backgroundColor: _canvas,
+      backgroundColor: const Color(0xFFF4EEE1),
       appBar: AppBar(
-        backgroundColor: _forest,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -47,7 +47,7 @@ class AdminHomePage extends StatelessWidget {
         title: const Row(children: [
           PlatformBrandLogo(size: 34),
           SizedBox(width: 10),
-          Expanded(child: Text('Tourism Portal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+          Expanded(child: Text('Tourist Guide', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
         ]),
         actions: [
           IconButton(
@@ -101,17 +101,13 @@ class AdminHomePage extends StatelessWidget {
               _Action(Icons.settings_outlined, 'Settings', 'Platform controls', () => _open(context, const AdminSettingsPage())),
             ]),
             const SizedBox(height: 24),
-            const Text('TOURISM PORTAL  •  ADMIN WORKSPACE', textAlign: TextAlign.center,
+            const Text('TOURIST GUIDE  •  ADMIN WORKSPACE', textAlign: TextAlign.center,
               style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: _muted, fontWeight: FontWeight.w700)),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        height: 72,
-        backgroundColor: Colors.white,
-        selectedIndex: 0,
-        indicatorColor: _forest.withValues(alpha: .11),
-        onDestinationSelected: (index) {
+      bottomNavigationBar: _PremiumAdminNavigation(
+        onSelected: (index) {
           switch (index) {
             case 0: break;
             case 1: _open(context, const AdminCatalogPage()); break;
@@ -119,12 +115,6 @@ class AdminHomePage extends StatelessWidget {
             case 3: _open(context, const AdminAdvertisementsPage()); break;
           }
         },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: 'Overview'),
-          NavigationDestination(icon: Icon(Icons.landscape_outlined), label: 'Catalog'),
-          NavigationDestination(icon: Icon(Icons.verified_user_outlined), label: 'Approvals'),
-          NavigationDestination(icon: Icon(Icons.campaign_outlined), label: 'Adverts'),
-        ],
       ),
     );
   }
@@ -259,4 +249,104 @@ class _ActionTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+
+/// A floating, safe-area-aware navigation dock for the admin workspace.
+/// Uses the published primary palette rather than a fixed brand colour.
+class _PremiumAdminNavigation extends StatelessWidget {
+  const _PremiumAdminNavigation({required this.onSelected});
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final surface = dark ? Theme.of(context).colorScheme.surface : Colors.white;
+    final muted = dark ? Colors.white70 : const Color(0xFF7D8B8A);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.fromLTRB(16, 7, 16, bottom > 0 ? bottom + 7 : 15),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: primary.withValues(alpha: .09)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: dark ? .22 : .09), blurRadius: 26, offset: const Offset(0, 9)),
+                BoxShadow(color: primary.withValues(alpha: .045), blurRadius: 12, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Row(
+              children: [
+                _AdminDockItem(index: 0, label: 'Home', icon: Icons.grid_view_rounded,
+                  active: true, primary: primary, muted: muted, onTap: onSelected),
+                _AdminDockItem(index: 1, label: 'Catalog', icon: Icons.explore_outlined,
+                  active: false, primary: primary, muted: muted, onTap: onSelected),
+                _AdminDockItem(index: 2, label: 'Approvals', icon: Icons.verified_user_outlined,
+                  active: false, primary: primary, muted: muted, onTap: onSelected),
+                _AdminDockItem(index: 3, label: 'Adverts', icon: Icons.campaign_outlined,
+                  active: false, primary: primary, muted: muted, onTap: onSelected),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminDockItem extends StatelessWidget {
+  const _AdminDockItem({required this.index, required this.label, required this.icon,
+    required this.active, required this.primary, required this.muted, required this.onTap});
+  final int index;
+  final String label;
+  final IconData icon;
+  final bool active;
+  final Color primary;
+  final Color muted;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: active,
+        label: label,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => onTap(index),
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(vertical: 9),
+              decoration: BoxDecoration(
+                color: active ? primary.withValues(alpha: .10) : Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 23, color: active ? primary : muted),
+                  const SizedBox(height: 5),
+                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10.5, fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: active ? primary : muted)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

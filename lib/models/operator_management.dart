@@ -3,17 +3,20 @@ import '../services/auth_service.dart';
 class TourItineraryStop {
   const TourItineraryStop({
     required this.day,
+    this.endDay,
     required this.title,
     required this.description,
   });
 
   final int day;
+  final int? endDay;
   final String title;
   final String description;
 
   factory TourItineraryStop.fromJson(Map<String, dynamic> json) {
     return TourItineraryStop(
       day: _integer(json['day']),
+      endDay: _integer(json['end_day'] ?? json['day']),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
     );
@@ -40,6 +43,7 @@ class OperatorTour {
     this.moods = const [],
     this.moodIds = const [],
     this.itinerary = const [],
+    this.gallery = const [],
     this.inclusions = const [],
     this.exclusions = const [],
     this.operatorId = 0,
@@ -75,6 +79,16 @@ class OperatorTour {
   final List<String> moods;
   final List<int> moodIds;
   final List<TourItineraryStop> itinerary;
+  final List<String> gallery;
+  List<String> get galleryUrls {
+    final values = <String>[image, ...gallery];
+    final result = <String>[];
+    for (final value in values) {
+      final url = AuthService.storageUrl(value);
+      if (url.isNotEmpty && !result.contains(url)) result.add(url);
+    }
+    return result.take(3).toList();
+  }
   final List<String> inclusions;
   final List<String> exclusions;
   final int operatorId;
@@ -133,6 +147,7 @@ class OperatorTour {
       isMultiCountry: _boolean(json['is_multi_country']),
       moods: _strings(json['moods']),
       moodIds: _integers(json['mood_ids']),
+      gallery: _galleryStrings(json['gallery'] ?? json['images'] ?? json['photos']),
       itinerary:
           _mapList(json['itinerary']).map(TourItineraryStop.fromJson).toList()
             ..sort((first, second) => first.day.compareTo(second.day)),
@@ -343,4 +358,12 @@ List<String> _strings(dynamic value) {
 List<int> _integers(dynamic value) {
   if (value is! List) return const [];
   return value.map(_integer).where((item) => item > 0).toList();
+}
+
+List<String> _galleryStrings(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw.map((item) {
+    if (item is Map) return (item['url'] ?? item['path'] ?? item['image'] ?? '').toString();
+    return item?.toString() ?? '';
+  }).where((s) => s.trim().isNotEmpty).toList();
 }

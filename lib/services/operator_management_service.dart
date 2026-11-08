@@ -31,6 +31,7 @@ class OperatorManagementService {
     required List<int> destinationIds,
     required List<int> moodIds,
     String? imagePath,
+    List<String> galleryPaths = const [],
   }) async {
     await _multipart(
       tour == null ? '/operator/tours' : '/operator/tours/${tour.id}',
@@ -41,6 +42,7 @@ class OperatorManagementService {
         'mood_ids': moodIds.map((id) => id.toString()).toList(),
       },
       imagePath: imagePath,
+      galleryPaths: galleryPaths,
     );
   }
 
@@ -113,6 +115,7 @@ class OperatorManagementService {
     required Map<String, String> fields,
     required Map<String, List<String>> lists,
     String? imagePath,
+    List<String> galleryPaths = const [],
   }) async {
     final token = await AuthService.instance.requireToken();
     String? requestBaseUrl;
@@ -140,6 +143,10 @@ class OperatorManagementService {
         request.files.add(
           await http.MultipartFile.fromPath('image', imagePath),
         );
+      }
+
+      for (var index = 0; index < galleryPaths.length; index++) {
+        request.files.add(await http.MultipartFile.fromPath('gallery[$index]', galleryPaths[index]));
       }
 
       final streamed = await request.send().timeout(

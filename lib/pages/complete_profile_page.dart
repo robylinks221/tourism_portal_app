@@ -1094,59 +1094,113 @@ class _WorldCountryPickerField extends FormField<String> {
            return null;
          },
          builder: (state) {
-           final theme = Theme.of(state.context);
-           final colors = theme.colorScheme;
+           const ink = Color(0xFF17211F);
+           const primary = Color(0xFF165B5D);
            final selected = WorldCountries.byName(state.value);
+           final hasError = state.hasError;
 
-           return InkWell(
-             onTap: () async {
-               final country = await showModalBottomSheet<WorldCountry>(
-                 context: state.context,
-                 isScrollControlled: true,
-                 useSafeArea: true,
-                 backgroundColor: Colors.transparent,
-                 builder: (_) => const _WorldCountryPickerSheet(),
-               );
-
-               if (country == null) return;
-
-               state.didChange(country.name);
-               onChanged(country.name);
-             },
-             borderRadius: BorderRadius.circular(16),
-             child: InputDecorator(
-               isEmpty: selected == null,
-               decoration: InputDecoration(
-                 labelText: label,
-                 helperText: helperText,
-                 errorText: state.errorText,
-                 prefixIcon: const Icon(Icons.public_rounded),
-                 suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+           return Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               Padding(
+                 padding: const EdgeInsets.only(left: 4, bottom: 8),
+                 child: Text(
+                   label,
+                   style: const TextStyle(
+                     color: ink,
+                     fontSize: 14,
+                     fontWeight: FontWeight.w800,
+                   ),
+                 ),
                ),
-               child:
-                   selected == null
-                       ? Text(
-                         'Choose country',
-                         style: theme.textTheme.bodyLarge?.copyWith(
-                           color: colors.onSurface.withOpacity(.52),
-                         ),
-                       )
-                       : Row(
-                         children: [
-                           _WorldCountryFlag(country: selected),
-                           const SizedBox(width: 10),
-                           Expanded(
-                             child: Text(
-                               selected.name,
-                               overflow: TextOverflow.ellipsis,
-                               style: theme.textTheme.bodyLarge?.copyWith(
-                                 fontWeight: FontWeight.w700,
-                               ),
-                             ),
-                           ),
-                         ],
+               Material(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(16),
+                 child: InkWell(
+                   borderRadius: BorderRadius.circular(16),
+                   onTap: () async {
+                     final country = await showModalBottomSheet<WorldCountry>(
+                       context: state.context,
+                       isScrollControlled: true,
+                       useSafeArea: true,
+                       backgroundColor: Colors.transparent,
+                       builder: (_) => const _WorldCountryPickerSheet(),
+                     );
+                     if (country == null) return;
+                     state.didChange(country.name);
+                     onChanged(country.name);
+                   },
+                   child: Container(
+                     constraints: const BoxConstraints(minHeight: 58),
+                     padding: const EdgeInsets.symmetric(
+                       horizontal: 14,
+                       vertical: 13,
+                     ),
+                     decoration: BoxDecoration(
+                       borderRadius: BorderRadius.circular(16),
+                       border: Border.all(
+                         color: hasError
+                             ? const Color(0xFFB3261E)
+                             : primary.withOpacity(.28),
                        ),
-             ),
+                     ),
+                     child: Row(
+                       children: [
+                         const Icon(Icons.public_rounded, color: primary),
+                         const SizedBox(width: 12),
+                         Expanded(
+                           child: selected == null
+                               ? const Text(
+                                   'Select your country of residence',
+                                   maxLines: 2,
+                                   style: TextStyle(
+                                     color: ink,
+                                     fontSize: 15,
+                                     fontWeight: FontWeight.w600,
+                                   ),
+                                 )
+                               : Row(
+                                   children: [
+                                     _WorldCountryFlag(country: selected),
+                                     const SizedBox(width: 10),
+                                     Expanded(
+                                       child: Text(
+                                         selected.name,
+                                         maxLines: 2,
+                                         overflow: TextOverflow.ellipsis,
+                                         style: const TextStyle(
+                                           color: ink,
+                                           fontSize: 15,
+                                           fontWeight: FontWeight.w700,
+                                         ),
+                                       ),
+                                     ),
+                                   ],
+                                 ),
+                         ),
+                         const SizedBox(width: 8),
+                         const Icon(
+                           Icons.keyboard_arrow_down_rounded,
+                           color: primary,
+                         ),
+                       ],
+                     ),
+                   ),
+                 ),
+               ),
+               Padding(
+                 padding: const EdgeInsets.only(left: 4, top: 6),
+                 child: Text(
+                   state.errorText ?? helperText,
+                   style: TextStyle(
+                     color: hasError
+                         ? const Color(0xFFB3261E)
+                         : const Color(0xFF46534F),
+                     fontSize: 12,
+                   ),
+                 ),
+               ),
+             ],
            );
          },
        );

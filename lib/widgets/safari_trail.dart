@@ -19,7 +19,7 @@ class SafariTrail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Route, Day by Day',
+          'DAY BY DAY',
           style: theme.textTheme.labelSmall?.copyWith(
             color: trailColor,
             fontWeight: FontWeight.w900,
@@ -28,7 +28,7 @@ class SafariTrail extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          'Safari trail',
+          'Itinerary',
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w300,
             height: 1.05,
@@ -36,7 +36,7 @@ class SafariTrail extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'A clear field plan for every stage of the journey.',
+          'A considered journey, thoughtfully arranged from arrival to departure.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colors.onSurfaceVariant,
             height: 1.45,
@@ -76,13 +76,13 @@ class _TrailStop extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            width: 46,
+            width: 60,
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
                 if (!isLast)
                   Positioned(
-                    top: 36,
+                    top: 40,
                     bottom: -12,
                     child: Container(
                       width: 2,
@@ -93,8 +93,8 @@ class _TrailStop extends StatelessWidget {
                     ),
                   ),
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 56,
+                  height: 42,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: accent,
@@ -109,7 +109,7 @@ class _TrailStop extends StatelessWidget {
                     ],
                   ),
                   child: Text(
-                    '${stop.day}',
+                    stop.endDay != null && stop.endDay! > stop.day ? '${stop.day}–${stop.endDay}' : '${stop.day}',
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -139,7 +139,7 @@ class _TrailStop extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'DAY ${stop.day}',
+                    stop.endDay != null && stop.endDay! > stop.day ? 'DAYS ${stop.day}–${stop.endDay}' : 'DAY ${stop.day}',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: accent,
                       fontWeight: FontWeight.w900,
